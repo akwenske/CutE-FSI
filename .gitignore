@@ -1,0 +1,21 @@
+/*build*
+
+# qt creator
+CMakeLists.txt.user
+
+# cmake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+compile_commands.json
+cmake_install.cmake
+
+# doxygen
+doc/
+
+# output
+*.vtu
+*.vtk
+*.pdf
