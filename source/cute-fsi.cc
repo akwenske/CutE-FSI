@@ -168,6 +168,7 @@ void Stokes::StokesFSI<dim>::set_runtime_parameters()
   do_spatial_analysis          = parameters.do_spatial_analysis;
   do_temporal_analysis         = parameters.do_temporal_analysis;
   output_skip                  = parameters.output_skip;
+  interface_type               = parameters.interface_type;
 
   //Fluid parameters
   v_f_in                       = parameters.v_f_in;
@@ -242,7 +243,8 @@ void Stokes::StokesFSI<dim>::setup_discrete_level_sets(
       competely_distributed_level_set_fluid(locally_owned_dofs,
                                             mpi_communicator);
 
-  const SignedDistanceInterface<dim> signed_distance_interface;
+  const SignedDistanceInterface<dim>
+      signed_distance_interface(interface_type);
 
   VectorTools::interpolate(level_set_dof_handler,
                            signed_distance_interface,
@@ -970,8 +972,9 @@ void Stokes::StokesFSI<dim>::assemble_system()
 }
 
 /** Setting the boundary conditions as usual. Depending on the refinement level,
-      the computational solid domain may intersect the outer domain boundary.
-      Hence, we also apply zero boundary conditions to the solid deformation.*/
+      the computational solid domain may also intersect the outer domain boundary
+      in case of the spherical interface. Hence, we also apply zero boundary conditions
+      to the solid components.*/
 template <int dim>
 void Stokes::StokesFSI<dim>::set_bc()
 {
@@ -986,9 +989,6 @@ void Stokes::StokesFSI<dim>::set_bc()
   ComponentMask component_mask(3*dim+1, true);
 
   component_mask.set(pressure_index, false);
-
-  for (unsigned int k = 0; k < dim; ++k)
-    component_mask.set(k+velocity_structure_index, false);
 
   VectorTools::interpolate_boundary_values(dof_handler,
                                            1,
@@ -1750,7 +1750,7 @@ void Stokes::StokesFSI<dim>::run()
 
   pcout << "\n=============================="
         << "====================================="  << std::endl;
-  pcout << " Sphere "
+  pcout << " Interface type: " << interface_type
         << "\n=============================="
         << "====================================="  << std::endl;
   pcout << "m_f: " << fe_degree_fluid << "\t m_s: " << fe_degree_solid

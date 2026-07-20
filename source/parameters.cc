@@ -55,6 +55,9 @@ namespace Parameters
             prm.declare_entry("output_skip", "1",
                               Patterns::Integer(1),
                               "Output skip for solution values");
+            prm.declare_entry("interface_type", "sphere",
+                              Patterns::Selection("sphere|horizontal"),
+                              "Defines the interface geometry");
         }
         prm.leave_subsection();
     }
@@ -71,6 +74,7 @@ namespace Parameters
             do_spatial_analysis          = prm.get_bool("do_spatial_analysis");
             do_temporal_analysis         = prm.get_bool("do_temporal_analysis");
             output_skip                  = prm.get_integer("output_skip");
+            interface_type               = prm.get("interface_type");
         }
         prm.leave_subsection();
     }

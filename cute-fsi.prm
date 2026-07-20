@@ -13,6 +13,9 @@ subsection Global parameters
     set do_spatial_analysis = true
     set do_temporal_analysis = false
     set output_skip = 1
+    # sets the interface geometry
+    # Options: sphere, horizontal
+    set interface_type = sphere
 end
 
 subsection Physical constants

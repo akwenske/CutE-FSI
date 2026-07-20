@@ -250,6 +250,9 @@ namespace Stokes
       // Only print every output_skipth solution to .vtu
       unsigned int output_skip;
 
+      // Defines the interface geometry
+      std::string interface_type;
+
       // Physcial parameters
       double       v_f_in; // inflow velocity
       double       nu_f;   // fluid viscosity

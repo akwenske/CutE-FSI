@@ -33,7 +33,16 @@ template <int dim>
 double SignedDistanceInterface<dim>::value(const Point<dim> &p,
                                            const unsigned int /*component*/) const
 {
-  return 0.75 - p.norm();
+  if (interface_type == "sphere")
+    return 0.75 - p.norm();
+  else if (interface_type == "horizontal")
+    return -p(1) -0.27;
+  else
+    {
+      std::string error_msg = std::string("Given interface_type is unknown!")
+          + std::string("interface_type 'sphere' or 'horizontal' is required!");
+      throw std::runtime_error(error_msg);
+    }
 }
 
 //---------------------------------

@@ -38,8 +38,15 @@ template <int dim>
 class SignedDistanceInterface : public Function<dim>
 {
 public:
+  SignedDistanceInterface (const std::string interface_type)
+    : Function<dim>()
+  {
+    this->interface_type = interface_type;
+  }
   virtual double value(const Point<dim> & p,
                        const unsigned int component = 0) const override;
+private:
+  std::string interface_type;
 };
 
 template <int dim>

@@ -42,6 +42,7 @@ namespace Parameters
     bool         do_spatial_analysis;
     bool         do_temporal_analysis;
     unsigned int output_skip;
+    std::string  interface_type;
 
     static void
     declare_parameters(ParameterHandler &prm);
