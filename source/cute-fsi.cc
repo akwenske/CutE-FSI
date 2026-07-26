@@ -1547,7 +1547,7 @@ void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
 /** Compute the reference solution on the finest mesh.
    *
    * The refinement level of the finest mesh corresponds to
-   * n_refinements + n_refinement_cycles. Save the reference soltion for each
+   * n_refinements + n_refinement_cycles. Save the reference solution for each
    * timestep, compute the reference norms and initialize the reference DoFHandlers,
    * level set function, triangulation and mesh classifier.
    */
@@ -1706,7 +1706,7 @@ void Stokes::StokesFSI<dim>::run()
   ConvergenceTable   convergence_table; // norms of errors
   TableHandler       table; // norms of current solution
 
-  // variables to store the space-time-l2 norms:
+  // Variables to be stored the space-time-l2 norms:
   // error:
   double sum_grad_v_f_err;
   double sum_grad_p_err;
@@ -1714,7 +1714,7 @@ void Stokes::StokesFSI<dim>::run()
   double sum_grad_v_f_sol;
   double sum_grad_p_sol;
 
-  // variables to store the space-l2 norms at the end time:
+  // Variables to be stored the space-l2 norms at the end time:
   // error:
   double v_f_T_err;
   double v_s_T_err;
