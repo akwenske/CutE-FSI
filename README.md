@@ -13,6 +13,8 @@ Short abstract
 
 # Contributing
 
+We are happy for further contributions from others. In case of questions, please contact us. 
+
 # Lisence
 The license is GNU LESSER GENERAL PUBLIC LICENSE (LGPL) Version 2.1. Detailed information can be found [here](LICENSE).
 
