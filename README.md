@@ -14,5 +14,6 @@ Short abstract
 # Contributing
 
 # Lisence
+The license is GNU LESSER GENERAL PUBLIC LICENSE (LGPL) Version 2.1. Detailed information can be found [here](LICENSE).
 
 # References
