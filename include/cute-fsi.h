@@ -210,14 +210,14 @@ namespace Stokes
       NonMatching::MeshClassifier<dim>          mesh_classifier_fluid; /** Mesh classifier from the fluid pov */
       NonMatching::MeshClassifier<dim>          ref_mesh_classifier_fluid;
 
-      //Indices for the extraction of the components, since the FEValuesExtractors
-      //doesn't work for the used NonMatching::FEValues
+      // Indices for the extraction of the components, since the FEValuesExtractors
+      // doesn't work for the used NonMatching::FEValues
       const unsigned int                        velocity_fluid_index;
       const unsigned int                        pressure_index;
       const unsigned int                        velocity_structure_index;
       const unsigned int                        displacement_index;
 
-      // We have five different Vectors handling the solutions.
+      // We have five different vectors handling the solutions.
       // The first stores the solution at the current timestep and
       // the second the solution at the previous timestep. Then, we have
       // the reference solution at the current timestep. To compute the error,
