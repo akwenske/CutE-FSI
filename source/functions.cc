@@ -36,7 +36,7 @@ double SignedDistanceInterface<dim>::value(const Point<dim> &p,
   if (interface_type == "sphere")
     return 0.75 - p.norm();
   else if (interface_type == "horizontal")
-    return -p(1) -0.27;
+    return -p(1) - 0.27;
   else
     {
       std::string error_msg = std::string("Given interface_type is unknown!")
@@ -62,9 +62,9 @@ InflowBoundary<dim>::value (const Point<dim>  &p,
   if (component == 0)
     {
     if (p(0) <= -0.7)
-      return time_scaling * inflow_velocity * std::pow(std::sin(pi * (p(0) + 1.0) / 0.6),2);
+      return time_scaling * inflow_velocity * Utilities::fixed_power<2>(std::sin(pi * (p(0) + 1.0) / 0.6));
     else if (p(0) >= 0.7)
-      return time_scaling * inflow_velocity * std::pow(std::sin(pi * (p(0) - 1.0) / 0.6),2);
+      return time_scaling * inflow_velocity * Utilities::fixed_power<2>(std::sin(pi * (p(0) - 1.0) / 0.6));
     else
       return time_scaling * inflow_velocity;
     }
