@@ -79,8 +79,7 @@ namespace GhostPenalty
         break;
       case v_s:
         coefficients = {Utilities::fixed_power<3>(h),
-                        Utilities::fixed_power<5>(h)/4.,
-                        Utilities::fixed_power<7>(h)/36.};
+                        Utilities::fixed_power<5>(h)/4.};
         break;
       case u:
         coefficients = {h,
