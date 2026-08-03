@@ -70,8 +70,7 @@ namespace GhostPenalty
     switch(component) {
       case v_f:
         coefficients = {h,
-                        Utilities::fixed_power<3>(h),
-                        Utilities::fixed_power<5>(h)/4.};
+                        Utilities::fixed_power<3>(h)};
         break;
       case p:
         coefficients = {Utilities::fixed_power<3>(h),
@@ -83,8 +82,7 @@ namespace GhostPenalty
         break;
       case u:
         coefficients = {h,
-                        Utilities::fixed_power<3>(h),
-                        Utilities::fixed_power<5>(h)/4.};
+                        Utilities::fixed_power<3>(h)};
         break;
       }
 
