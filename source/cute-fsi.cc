@@ -922,15 +922,22 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                     Tensor<1, dim> jumps_u_grad_i =
                                         fe_interface_values[displacement].jump_in_gradients(i, q) * normal;
                                     std::vector<Tensor<1,dim>> jumps_u_i {jumps_u_grad_i};
-                                    jumps_u_j = {jumps_u_j[0]};
+                                    if (fe_degree_solid > 1)
+                                      {
+                                        Tensor<1, dim> jumps_u_hess_i   =
+                                            (fe_interface_values[displacement].jump_in_hessians(i, q) * normal) * normal;
+
+                                        jumps_u_i.push_back(jumps_u_hess_i);
+                                      }
+
                                     const double g_u_u = GhostPenalty::get_gp (GhostPenalty::u, 1.0e-15, weight_structure, h,
                                                                                jumps_u_i,
                                                                                jumps_u_j);
                                     local_stabilization(i, j) +=  k * 2. * mu * g_u_u *
                                         fe_interface_values.JxW(q);
                                   }
-
 #endif
+
                               }
                           }
 
