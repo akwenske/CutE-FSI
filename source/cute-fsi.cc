@@ -1581,12 +1581,12 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
   initialize_matrices();
 
   pcout << "\n=============================="
-        << "================================"
+        << "====================================="
         << "\nTimestep " << timestep_no
         << ": " << time
         << " (" << k << ")"
         << "\n=============================="
-        << "================================"
+        << "====================================="
         << std::endl;
 
   pcout << std::endl;
@@ -1605,12 +1605,12 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
       old_timestep_solution = solution;
 
       pcout << "\n=============================="
-            << "================================"
+            << "====================================="
             << "\nTimestep " << timestep_no
             << ": " << time
             << " (" << k << ")"
             << "\n=============================="
-            << "================================"
+            << "====================================="
             << std::endl;
 
       pcout << std::endl;
@@ -1648,37 +1648,41 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
   sum_grad_v_f_ref = std::sqrt(sum_grad_v_f_ref);
   sum_grad_p_ref = std::sqrt(sum_grad_p_ref);
 
-  // To compute the errors later on the refinement level of the reference solution,
-  // corresponding DofHandlers need to be initialized.
-  pcout << "Setting up reference dof handler." << std::endl;
+  // In case of a convergence analysis, prepare all necessary runtime variables
+  if (n_refinement_cycles > 0)
+    {
+      // To compute the errors later on the refinement level of the reference solution,
+      // corresponding DofHandlers need to be initialized.
+      pcout << "Setting up reference dof handler." << std::endl;
 
-  ref_triangulation.copy_triangulation(triangulation);
+      ref_triangulation.copy_triangulation(triangulation);
 
-  setup_discrete_level_sets(ref_level_set_dof_handler,
-                            ref_level_set_fluid);
+      setup_discrete_level_sets(ref_level_set_dof_handler,
+                                ref_level_set_fluid);
 
-  ref_mesh_classifier_fluid.reclassify();
+      ref_mesh_classifier_fluid.reclassify();
 
-  distribute_dofs(ref_dof_handler,
-                  ref_mesh_classifier_fluid);
+      distribute_dofs(ref_dof_handler,
+                      ref_mesh_classifier_fluid);
 
-  const IndexSet locally_owned_ref_dofs =
-      ref_dof_handler.locally_owned_dofs();
-  const IndexSet locally_relevant_ref_dofs =
-      DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
-  ref_solution.reinit(locally_owned_ref_dofs,
-                      locally_relevant_ref_dofs,
-                      mpi_communicator);
+      const IndexSet locally_owned_ref_dofs =
+          ref_dof_handler.locally_owned_dofs();
+      const IndexSet locally_relevant_ref_dofs =
+          DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
+      ref_solution.reinit(locally_owned_ref_dofs,
+                          locally_relevant_ref_dofs,
+                          mpi_communicator);
 
-  pcout << "Reinit time variables and triangulation." << std::endl;
+      pcout << "Reinit time variables and triangulation." << std::endl;
 
-  time = 0.0;
-  timestep_no = 0;
+      time = 0.0;
+      timestep_no = 0;
 
-  if (do_spatial_analysis)
-    triangulation.coarsen_global(n_refinement_cycles);
-  if (do_temporal_analysis)
-    k *= std::pow(2,n_refinement_cycles);
+      if (do_spatial_analysis)
+        triangulation.coarsen_global(n_refinement_cycles);
+      if (do_temporal_analysis)
+        k *= std::pow(2,n_refinement_cycles);
+    }
 
   pcout << "\n=============================="
         << "====================================="
@@ -2020,6 +2024,8 @@ void Stokes::StokesFSI<dim>::run()
           }
 
         pcout << std::endl;
+        pcout << "Solution norms: " << std::endl;
+        pcout << std::endl;
         if (this_mpi_process == 0)
           table.write_text(std::cout);
         pcout << std::endl;
@@ -2062,6 +2068,35 @@ void Stokes::StokesFSI<dim>::run()
       pcout.get_stream().flags(f);
     }
 
+  // Print solution norms if no convergence analysis is done
+  if (n_refinement_cycles == 0)
+    {
+      table.add_value("h", h);
+      table.add_value("k", k);
+      table.add_value("||v_f(T)||", v_f_T_ref);
+      table.add_value("||v_s(T)||", v_s_T_ref);
+      table.add_value("||grad u(T)||", grad_u_T_ref);
+      table.add_value("||grad v_f||_I,O", sum_grad_v_f_ref);
+      table.add_value("||grad p||_I,O", sum_grad_p_ref);
+
+      table.set_precision("||v_f(T)||", 8);
+      table.set_precision("||v_s(T)||", 8);
+      table.set_precision("||grad u(T)||", 8);
+      table.set_precision("||grad v_f||_I,O", 8);
+      table.set_precision("||grad p||_I,O", 8);
+
+      table.set_scientific("||v_f(T)||", true);
+      table.set_scientific("||v_s(T)||", true);
+      table.set_scientific("||grad u(T)||", true);
+      table.set_scientific("||grad v_f||_I,O", true);
+      table.set_scientific("||grad p||_I,O", true);
+
+      pcout << "Solution norms: " << std::endl;
+      pcout << std::endl;
+      if (this_mpi_process == 0)
+        table.write_text(std::cout);
+      pcout << std::endl;
+    }
 }
 
 template class Stokes::StokesFSI<2>;
