@@ -215,7 +215,7 @@ void Stokes::StokesFSI<dim>::make_grid()
 }
 
 /** Setup the discrete level set. The level set function is given from the fluid
-   * point of  view. Depending on the given level_set_dof_handler and level_set_fluid,
+   * point of view. Depending on the given level_set_dof_handler and level_set_fluid,
    * the level set function is set up either for the current or for the reference solution.
    */
 template <int dim>
@@ -517,10 +517,10 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                 Tensor<1,dim> v_f_old_timestep_solution;
 
-                for (unsigned int k = 0; k < dim; k++)
+                for (unsigned int l = 0; l < dim; l++)
                   {
-                    v_f_old_timestep_solution[k] =
-                        old_timestep_solution_values[q](k+velocity_fluid_index);
+                    v_f_old_timestep_solution[l] =
+                        old_timestep_solution_values[q](l+velocity_fluid_index);
                   }
 
                 for (const unsigned int i : inside_fe_values_fluid->dof_indices())
@@ -530,12 +530,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
                     Tensor<2,dim> grad_v_f_i;
 
 
-                    for (unsigned int k = 0; k < dim; k++)
+                    for (unsigned int l = 0; l < dim; l++)
                       {
-                        v_f_i[k] =
-                            inside_fe_values_fluid->shape_value_component(i, q, k+velocity_fluid_index);
-                        grad_v_f_i[k] =
-                            inside_fe_values_fluid->shape_grad_component(i, q, k+velocity_fluid_index);
+                        v_f_i[l] =
+                            inside_fe_values_fluid->shape_value_component(i, q, l+velocity_fluid_index);
+                        grad_v_f_i[l] =
+                            inside_fe_values_fluid->shape_grad_component(i, q, l+velocity_fluid_index);
                       }
 
                     const double p_i =
@@ -547,12 +547,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         Tensor<1,dim> v_f_j;
                         Tensor<2,dim> grad_v_f_j;
 
-                        for (unsigned int k = 0; k < dim; k++)
+                        for (unsigned int l = 0; l < dim; l++)
                           {
-                            v_f_j[k] =
-                                inside_fe_values_fluid->shape_value_component(j, q, k+velocity_fluid_index);
-                            grad_v_f_j[k] =
-                                inside_fe_values_fluid->shape_grad_component(j, q, k+velocity_fluid_index);
+                            v_f_j[l] =
+                                inside_fe_values_fluid->shape_value_component(j, q, l+velocity_fluid_index);
+                            grad_v_f_j[l] =
+                                inside_fe_values_fluid->shape_grad_component(j, q, l+velocity_fluid_index);
                           }
 
                         const double p_j =
@@ -614,12 +614,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
                 Tensor<1,dim> v_s_old_timestep_solution;
                 Tensor<1,dim> u_old_timestep_solution;
 
-                for (unsigned int k = 0; k < dim; k++)
+                for (unsigned int l = 0; l < dim; l++)
                   {
-                    v_s_old_timestep_solution[k] =
-                        old_timestep_solution_values[q](k+velocity_structure_index);
-                    u_old_timestep_solution[k] =
-                        old_timestep_solution_values[q](k+displacement_index);
+                    v_s_old_timestep_solution[l] =
+                        old_timestep_solution_values[q](l+velocity_structure_index);
+                    u_old_timestep_solution[l] =
+                        old_timestep_solution_values[q](l+displacement_index);
                   }
 
                 for (const unsigned int i : inside_fe_values_structure->dof_indices())
@@ -647,14 +647,14 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         Tensor<1,dim> u_j;
                         Tensor<2,dim> grad_u_j;
 
-                        for (unsigned int k = 0; k < dim; k++)
+                        for (unsigned int l = 0; l < dim; l++)
                           {
-                            v_s_j[k] =
-                                inside_fe_values_structure->shape_value_component(j, q, k+velocity_structure_index);
-                            u_j[k] =
-                                inside_fe_values_structure->shape_value_component(j, q, k+displacement_index);
-                            grad_u_j[k] =
-                                inside_fe_values_structure->shape_grad_component(j, q, k+displacement_index);
+                            v_s_j[l] =
+                                inside_fe_values_structure->shape_value_component(j, q, l+velocity_structure_index);
+                            u_j[l] =
+                                inside_fe_values_structure->shape_value_component(j, q, l+displacement_index);
+                            grad_u_j[l] =
+                                inside_fe_values_structure->shape_grad_component(j, q, l+displacement_index);
                           }
 
                         Tensor<2,dim> stress = stress_structure(grad_u_j);
@@ -690,14 +690,14 @@ void Stokes::StokesFSI<dim>::assemble_system()
                     Tensor<2,dim> grad_v_f_i;
                     Tensor<1,dim> v_s_i;
 
-                    for (unsigned int k = 0; k < dim; k++)
+                    for (unsigned int l = 0; l < dim; l++)
                       {
-                        v_f_i[k] =
-                            surface_fe_values_fluid->shape_value_component(i, q, k+velocity_fluid_index);
-                        grad_v_f_i[k] =
-                            surface_fe_values_fluid->shape_grad_component(i, q, k+velocity_fluid_index);
-                        v_s_i[k] =
-                            surface_fe_values_fluid->shape_value_component(i, q, k+velocity_structure_index);
+                        v_f_i[l] =
+                            surface_fe_values_fluid->shape_value_component(i, q, l+velocity_fluid_index);
+                        grad_v_f_i[l] =
+                            surface_fe_values_fluid->shape_grad_component(i, q, l+velocity_fluid_index);
+                        v_s_i[l] =
+                            surface_fe_values_fluid->shape_value_component(i, q, l+velocity_structure_index);
                       }
 
                     double p_i =
@@ -713,14 +713,14 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         Tensor<2,dim> grad_v_f_j;
                         Tensor<1,dim> v_s_j;
 
-                        for (unsigned int k = 0; k < dim; k++)
+                        for (unsigned int l = 0; l < dim; l++)
                           {
-                            v_f_j[k] =
-                                surface_fe_values_fluid->shape_value_component(j, q, k+velocity_fluid_index);
-                            grad_v_f_j[k] =
-                                surface_fe_values_fluid->shape_grad_component(j, q, k+velocity_fluid_index);
-                            v_s_j[k] =
-                                surface_fe_values_fluid->shape_value_component(j, q, k+velocity_structure_index);
+                            v_f_j[l] =
+                                surface_fe_values_fluid->shape_value_component(j, q, l+velocity_fluid_index);
+                            grad_v_f_j[l] =
+                                surface_fe_values_fluid->shape_grad_component(j, q, l+velocity_fluid_index);
+                            v_s_j[l] =
+                                surface_fe_values_fluid->shape_value_component(j, q, l+velocity_structure_index);
                           }
 
                         double p_j =
@@ -1232,7 +1232,7 @@ void Stokes::StokesFSI<dim>::output_results(const unsigned int cycle,
    * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
    * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
    * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
-   * @param solution_type Compute these normt for the current solution or the error.
+   * @param solution_type Compute these norms for the current solution or the error.
   */
 template<int dim>
 void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
@@ -1316,10 +1316,10 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
               {
                 Tensor<1,dim> v_f_solution;
 
-                for (unsigned int k = 0; k < dim; k++)
+                for (unsigned int l = 0; l < dim; l++)
                   {
-                    v_f_solution[k] =
-                        local_solution_values[q](k+velocity_fluid_index);
+                    v_f_solution[l] =
+                        local_solution_values[q](l+velocity_fluid_index);
                   }
 
                 local_v_f += v_f_solution * v_f_solution *
@@ -1346,12 +1346,12 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
                 Tensor<1,dim> v_s_solution;
                 Tensor<2,dim> grad_v_s_solution;
 
-                for (unsigned int k = 0; k < dim; k++)
+                for (unsigned int l = 0; l < dim; l++)
                   {
-                    v_s_solution[k] =
-                        local_solution_values[q](k+velocity_structure_index);
-                    grad_v_s_solution[k] =
-                        local_solution_grads[q][k+displacement_index];
+                    v_s_solution[l] =
+                        local_solution_values[q](l+velocity_structure_index);
+                    grad_v_s_solution[l] =
+                        local_solution_grads[q][l+displacement_index];
                   }
 
                 local_v_s += scalar_product(v_s_solution,
@@ -1470,10 +1470,10 @@ void Stokes::StokesFSI<dim>::L2_space_time_norm(double & sum_grad_v_f,
                 Tensor<1,dim> grad_p_solution = local_solution_grads[q][pressure_index];
                 Tensor<2,dim> grad_v_f_solution;
 
-                for (unsigned int k = 0; k < dim; k++)
+                for (unsigned int l = 0; l < dim; l++)
                   {
-                    grad_v_f_solution[k] =
-                        local_solution_grads[q][k+velocity_fluid_index];
+                    grad_v_f_solution[l] =
+                        local_solution_grads[q][l+velocity_fluid_index];
                   }
 
                 local_grad_v_f += k *
@@ -1697,7 +1697,7 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
 
 /** Start the computation of the FSI problem.
    *
-   * If do_spatial_analysis or temporal_analysis are set to true, includes a convergence
+   * If do_spatial_analysis or do_temporal_analysis are set to true, includes a convergence
    * study in space and/or time. In case of a spatial analysis, the mesh refinement level
    * for the reference solution corresponds to n_refinements + n_refinement_cycles.
    * If n_refinement_cycles is set to 0, no convergence analysis will be conducted

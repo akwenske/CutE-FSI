@@ -237,7 +237,7 @@ namespace Stokes
 
       Parameters::AllParameters                 parameters;
 
-      // Number of refinemenets for the initial mesh and Number of refinement
+      // Number of refinemenets for the initial mesh and number of refinement
       // cycles for the convergence analysis. The latter corresponds to the number
       // of refinements for the reference solution
       unsigned int n_refinements;
@@ -247,7 +247,7 @@ namespace Stokes
       bool         do_spatial_analysis;
       bool         do_temporal_analysis;
 
-      // Only print every output_skipth solution to .vtu
+      // Only print every output_skip-th solution to .vtu
       unsigned int output_skip;
 
       // Defines the interface geometry
