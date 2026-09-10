@@ -2,15 +2,15 @@ subsection Global parameters
     # finite element degrees for fluid and solid
     # Options: m_f = 2, m_s = 1, 2
     set fe_degree_fluid = 2
-    set fe_degree_solid = 2
+    set fe_degree_solid = 1
     # number of global refinements
-    set n_refinements = 2
+    set n_refinements = 5
     # number of refinement cycles for convergence analysis
     # the reference solution is computed on 
     # refinement level n_refinements + n_refinement_cylces
     # at the start of the program
-    set n_refinement_cycles = 6
-    set do_spatial_analysis = true
+    set n_refinement_cycles = 0
+    set do_spatial_analysis = false
     set do_temporal_analysis = false
     set output_skip = 1
     # sets the interface geometry
