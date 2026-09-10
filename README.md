@@ -27,6 +27,7 @@ $ mkdir build && cd build
 $ cmake -DDEAL_II_DIR=<path-to-deal-ii> -DCMAKE_BUILD_TYPE=Release ..
 $ make -j <N> && mpirun -np <N> ./cute-fsi
 ```
+The parameter file cute-fsi.prm is included hard-coded in the main.cc
 
 ## First steps
 
@@ -38,14 +39,20 @@ $ make -j <N> && mpirun -np <N> ./cute-fsi
 
 ## Documentation
 
-[We could briefly explain in one sentence the main functions of the code.]
-
 To generate the documentation run
 
 ```
 $ doxygen Doxyfile
 ```
-in the CutE-FSI directory.
+in the CutE-FSI directory. 
+
+The principal functions and folders of the repository are:<br>
+[main.cc](main.cc): Starting file as usual.<br>
+*.prm: Parameter files for running different sets of configurations<br>
+include: folder with header *.h files<br>
+source: folder with source *.cc files<br>
+[cute-fsi.h](include/cute-fsi.h): Definition of parameters and functions for the actual main implementation of our method<br>
+[cute-fsi.cc](source/cute-fsi.h): Actual implementation of the CutFEM ghost penalty method for Fully Eulerian Fluid-Structure Interaction<br>
 
 ## Contributing
 
