@@ -2,10 +2,13 @@
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "CutE-FSI"
 OUTPUT_DIRECTORY       = ./doc
-RECURSIVE	       = YES 
 EXTRACT_PRIVATE        = YES
 JAVADOC_AUTOBRIEF      = YES
 HIDE_UNDOC_NAMESPACES  = NO
+EXTRACT_ALL            = YES
+INPUT                  = ./source \
+                         ./include \
+                         .
 
 # This tag implements a quasi-intelligent brief description abbreviator that is
 # used to form the text in various listings. Each string in this list, if found
