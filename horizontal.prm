@@ -25,7 +25,7 @@ subsection Physical constants
     set density_fluid   = 1.0e+0
 
     # Solid parameters
-    set density_structure   = 1.0e+0
+    set density_solid   = 1.0e+0
 
     set mu      = 5.0e-3
     set lambda  = 1.0e-2
@@ -38,7 +38,7 @@ end
 
 subsection Ghost Parameters
     set ghost_parameter_velocity_fluid        = 1.0e-3
-    set ghost_parameter_velocity_structure    = 1.0e-3
+    set ghost_parameter_velocity_solid    = 1.0e-3
     set ghost_parameter_pressure              = 1.0e-3
     set ghost_parameter_displacement_velocity = 1.0e-3
     set max_ghost_weight                      = 1.0

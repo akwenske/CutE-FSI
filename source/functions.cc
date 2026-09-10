@@ -94,7 +94,7 @@ Tensor<1, dim> RightHandSideFluid<dim>::vector_value (const Point<dim> & /*p*/) 
 }
 
 template <int dim>
-Tensor<1, dim> RightHandSideStructure<dim>::vector_value (const Point<dim> & /*p*/) const
+Tensor<1, dim> RightHandSideSolid<dim>::vector_value (const Point<dim> & /*p*/) const
 {
   Tensor<1, dim> values;
   for (unsigned int c=0; c<dim; ++c)
@@ -105,4 +105,4 @@ Tensor<1, dim> RightHandSideStructure<dim>::vector_value (const Point<dim> & /*p
 template class SignedDistanceInterface<2>;
 template class InflowBoundary<2>;
 template class RightHandSideFluid<2>;
-template class RightHandSideStructure<2>;
+template class RightHandSideSolid<2>;

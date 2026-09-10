@@ -93,9 +93,9 @@ namespace Parameters
             prm.declare_entry("density_fluid", "1.0",
                               Patterns::Double(0),
                               "fluid density");
-            prm.declare_entry("density_structure", "1.0",
+            prm.declare_entry("density_solid", "1.0",
                               Patterns::Double(0),
-                              "structure density");
+                              "solid density");
             prm.declare_entry("mu", "1.0",
                               Patterns::Double(0),
                               "mu");
@@ -114,7 +114,7 @@ namespace Parameters
         v_f_in     = prm.get_double("inflow_velocity");
         nu_f       = prm.get_double("viscosity_fluid");
         rho_f      = prm.get_double("density_fluid");
-        rho_s      = prm.get_double("density_structure");
+        rho_s      = prm.get_double("density_solid");
         mu         = prm.get_double("mu");
         lambda     = prm.get_double("lambda");
       }
@@ -155,9 +155,9 @@ namespace Parameters
         prm.declare_entry("ghost_parameter_velocity_fluid", "1.0e-3",
                           Patterns::Double(0),
                           "Ghost parameter velocity fluid");
-        prm.declare_entry("ghost_parameter_velocity_structure", "1.0e-3",
+        prm.declare_entry("ghost_parameter_velocity_solid", "1.0e-3",
                           Patterns::Double(0),
-                          "Ghost parameter velocity structure");
+                          "Ghost parameter velocity solid");
         prm.declare_entry("ghost_parameter_pressure", "1.0e-3",
                           Patterns::Double(0),
                           "Ghost parameter pressure");
@@ -180,7 +180,7 @@ namespace Parameters
       prm.enter_subsection("Ghost Parameters");
       {
         ghost_prm_v_f        = prm.get_double("ghost_parameter_velocity_fluid");
-        ghost_prm_v_s        = prm.get_double("ghost_parameter_velocity_structure");
+        ghost_prm_v_s        = prm.get_double("ghost_parameter_velocity_solid");
         ghost_prm_p          = prm.get_double("ghost_parameter_pressure");
         ghost_prm_u_v        = prm.get_double("ghost_parameter_displacement_velocity");
         max_ghost_weight     = prm.get_double("max_ghost_weight");
