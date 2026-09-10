@@ -125,13 +125,13 @@ Stokes::StokesFSI<dim>::StokesFSI(const unsigned int m_f,
              FE_Q<dim>(fe_degree_fluid-1), 1, // pressure
              FE_Nothing<dim>(), dim,
              FE_Nothing<dim>(), dim)
-  , fe_structure(FE_Nothing<dim>(), dim,
+  , fe_solid(FE_Nothing<dim>(), dim,
                  FE_Nothing<dim>(), 1,
-                 FE_Q<dim>(fe_degree_solid), dim, // velocity structure
+                 FE_Q<dim>(fe_degree_solid), dim, // velocity solid
                  FE_Q<dim>(fe_degree_solid), dim) // displacement
   , fe_interface(FE_Q<dim>(fe_degree_fluid), dim, // velocity fluid
                  FE_Q<dim>(fe_degree_fluid-1), 1, // pressure
-                 FE_Q<dim>(fe_degree_solid), dim, // velocity structure
+                 FE_Q<dim>(fe_degree_solid), dim, // velocity solid
                  FE_Q<dim>(fe_degree_solid), dim) // displacement
   , dof_handler(triangulation)
   , ref_dof_handler(ref_triangulation)
@@ -141,14 +141,14 @@ Stokes::StokesFSI<dim>::StokesFSI(const unsigned int m_f,
                               ref_level_set_fluid)
   , velocity_fluid_index(0)
   , pressure_index(dim)
-  , velocity_structure_index(dim+1)
+  , velocity_solid_index(dim+1)
   , displacement_index(2*dim+1)
   , parameters(prm)
   , time(0.0)
   , timestep_no(0)
 {
   fe_collection.push_back(fe_fluid);
-  fe_collection.push_back(fe_structure);
+  fe_collection.push_back(fe_solid);
   fe_collection.push_back(fe_interface);
 }
 
@@ -172,7 +172,7 @@ void Stokes::StokesFSI<dim>::set_runtime_parameters()
   nu_f                         = parameters.nu_f;
   rho_f                        = parameters.rho_f;
 
-  //Structure parameters
+  //Solid parameters
   rho_s                        = parameters.rho_s;
   mu                           = parameters.mu;
   lambda                       = parameters.lambda;
@@ -252,7 +252,7 @@ void Stokes::StokesFSI<dim>::setup_discrete_level_sets(
 
 /** Distributes the dofs for the current or reference solution.
    * The location of each cell is determined by the given mesh_classifier_fluid object
-   * to either fluid, structure or (cut) interface cells.
+   * to either fluid, solid or (cut) interface cells.
    */
 template <int dim>
 void Stokes::StokesFSI<dim>::distribute_dofs(
@@ -273,7 +273,7 @@ void Stokes::StokesFSI<dim>::distribute_dofs(
         else if (cell_location == NonMatching::LocationToLevelSet::inside)
           cell->set_active_fe_index(ActiveFEIndex::fluid);
         else
-          cell->set_active_fe_index(ActiveFEIndex::structure);
+          cell->set_active_fe_index(ActiveFEIndex::solid);
       }
 
   dof_handler.distribute_dofs(fe_collection);
@@ -293,7 +293,7 @@ void Stokes::StokesFSI<dim>::initialize_matrices()
       return (this->face_has_ghost_penalty(cell, face_index,
                                            ActiveFEIndex::fluid) ||
               this->face_has_ghost_penalty(cell, face_index,
-                                           ActiveFEIndex::structure));
+                                           ActiveFEIndex::solid));
     };
 
   const unsigned int n_components = fe_collection.n_components();
@@ -365,7 +365,7 @@ void Stokes::StokesFSI<dim>::initialize_matrices()
 /** Decides whether a given face lies in the set \f$\mathcal{F}_G^i\f$ for \f$ i\in\{f,s\}\f$.
    * @param cell The current cell on which the face lies.
    * @param face_index The index of the face on the current cell.
-   * @param subdomain The subdomain (either fluid or structure) for which the necessity
+   * @param subdomain The subdomain (either fluid or solid) for which the necessity
    *  of penalization should be checked.
    */
 template <int dim>
@@ -389,7 +389,7 @@ bool Stokes::StokesFSI<dim>::face_has_ghost_penalty(
            cell_location != NonMatching::LocationToLevelSet::outside))
         return true;
       break;
-    case structure:
+    case solid:
       if ((cell_location == NonMatching::LocationToLevelSet::intersected &&
            neighbor_location != NonMatching::LocationToLevelSet::inside) ||
           (neighbor_location == NonMatching::LocationToLevelSet::intersected &&
@@ -414,7 +414,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
   std::vector<types::global_dof_index> local_dof_indices;
 
   const RightHandSideFluid<dim>     rhs_function_fluid;
-  const RightHandSideStructure<dim> rhs_function_structure;
+  const RightHandSideSolid<dim> rhs_function_solid;
 
   // Assemble the ghost penalty terms via an FEInterfaceValues object
   const QGauss<dim - 1> face_quadrature(quadrature_degree);
@@ -429,7 +429,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
   // Assemble the bulk and interface terms via a NonMatching object
   // that is given from the fluid point of view. Hence, "inside" refers
-  // to fluid terms, "outside" to structure terms and "surface" to
+  // to fluid terms, "outside" to solid terms and "surface" to
   // interface terms.
   const QGauss<1> quadrature_1D(quadrature_degree);
 
@@ -451,7 +451,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
   const FEValuesExtractors::Vector velocity_fluid (velocity_fluid_index);
   const FEValuesExtractors::Scalar pressure (pressure_index);
-  const FEValuesExtractors::Vector velocity_structure (velocity_structure_index);
+  const FEValuesExtractors::Vector velocity_solid (velocity_solid_index);
   const FEValuesExtractors::Vector displacement (displacement_index);
 
   system_matrix = 0;
@@ -466,7 +466,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
     return 2.0 * rho_f * nu_f * symgrad(grad_v_f) -
         p * unit_symmetric_tensor<dim>();
   };
-  const auto stress_structure = [&] (Tensor<2,dim> grad_u)
+  const auto stress_solid = [&] (Tensor<2,dim> grad_u)
   {
     return 2.0 * mu * symgrad(grad_u) +
         lambda * trace(symgrad(grad_u)) * unit_symmetric_tensor<dim>();
@@ -492,7 +492,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
         const std::optional<FEValues<dim>> &inside_fe_values_fluid =
             non_matching_fe_values_fluid.get_inside_fe_values();
 
-        const std::optional<FEValues<dim>> &inside_fe_values_structure =
+        const std::optional<FEValues<dim>> &inside_fe_values_solid =
             non_matching_fe_values_fluid.get_outside_fe_values();
 
         const std::optional<NonMatching::FEImmersedSurfaceValues<dim>>
@@ -580,36 +580,36 @@ void Stokes::StokesFSI<dim>::assemble_system()
         // system matrix will be singular. As a workaround for that, one can add an additional penalty
         // term g_u_u that serves to extend the test function of the deformation onto these faces.
         // To this end, we check whether the cell with faces for which we add ghost penalties in the
-        // structure intersects the solid domain in more than one point. It is recommended to use a
+        // solid intersects the solid domain in more than one point. It is recommended to use a
         // very small ghost penalty parameter for g_u_u, e.g. 1.0e-15.
         // Alternatively, one could manually reclassify interface cells, for which either
-        // !inside_fe_values_fluid or !inside_fe_values_structure holds and use a
+        // !inside_fe_values_fluid or !inside_fe_values_solid holds and use a
         // cell's active fe index to determine whether or not ghost penalty terms should be applied.
         // In deal.ii v.9.8.0, this classification is amended and no workaround need to be applied.
         // Hence, we will only add g_u_u depending on the package version.
 #if defined(DEAL_II_LESS_9_8_0)
-        bool cell_contains_structure = false;
+        bool cell_contains_solid = false;
 #endif
 
-        // structure bulk terms
-        if (inside_fe_values_structure)
+        // solid bulk terms
+        if (inside_fe_values_solid)
           {
 #if defined(DEAL_II_LESS_9_8_0)
-            cell_contains_structure = true;
+            cell_contains_solid = true;
 #endif
 
             std::vector<Vector<double>>
-                old_timestep_solution_values (inside_fe_values_structure->n_quadrature_points,
+                old_timestep_solution_values (inside_fe_values_solid->n_quadrature_points,
                                               Vector<double> (3*dim+1));
 
-            inside_fe_values_structure->get_function_values(old_timestep_solution,
+            inside_fe_values_solid->get_function_values(old_timestep_solution,
                                                             old_timestep_solution_values);
 
             for (const unsigned int q :
-                 inside_fe_values_structure->quadrature_point_indices())
+                 inside_fe_values_solid->quadrature_point_indices())
               {
                 const Point<dim> &point =
-                    inside_fe_values_structure->quadrature_point(q);
+                    inside_fe_values_solid->quadrature_point(q);
 
                 Tensor<1,dim> v_s_old_timestep_solution;
                 Tensor<1,dim> u_old_timestep_solution;
@@ -617,12 +617,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
                 for (unsigned int l = 0; l < dim; l++)
                   {
                     v_s_old_timestep_solution[l] =
-                        old_timestep_solution_values[q](l+velocity_structure_index);
+                        old_timestep_solution_values[q](l+velocity_solid_index);
                     u_old_timestep_solution[l] =
                         old_timestep_solution_values[q](l+displacement_index);
                   }
 
-                for (const unsigned int i : inside_fe_values_structure->dof_indices())
+                for (const unsigned int i : inside_fe_values_solid->dof_indices())
                   {
                     // solid test functions
                     Tensor<1,dim> v_s_i;
@@ -632,15 +632,15 @@ void Stokes::StokesFSI<dim>::assemble_system()
                     for (unsigned int k = 0; k < dim; k++)
                       {
                         v_s_i[k] =
-                            inside_fe_values_structure->shape_value_component(i, q, k+velocity_structure_index);
+                            inside_fe_values_solid->shape_value_component(i, q, k+velocity_solid_index);
                         grad_v_s_i[k] =
-                            inside_fe_values_structure->shape_grad_component(i, q, k+velocity_structure_index);
+                            inside_fe_values_solid->shape_grad_component(i, q, k+velocity_solid_index);
                         u_i[k] =
-                            inside_fe_values_structure->shape_value_component(i, q, k+displacement_index);
+                            inside_fe_values_solid->shape_value_component(i, q, k+displacement_index);
                       }
 
 
-                    for (const unsigned int j : inside_fe_values_structure->dof_indices())
+                    for (const unsigned int j : inside_fe_values_solid->dof_indices())
                       {
                         // solid ansatz functions
                         Tensor<1,dim> v_s_j;
@@ -650,26 +650,26 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         for (unsigned int l = 0; l < dim; l++)
                           {
                             v_s_j[l] =
-                                inside_fe_values_structure->shape_value_component(j, q, l+velocity_structure_index);
+                                inside_fe_values_solid->shape_value_component(j, q, l+velocity_solid_index);
                             u_j[l] =
-                                inside_fe_values_structure->shape_value_component(j, q, l+displacement_index);
+                                inside_fe_values_solid->shape_value_component(j, q, l+displacement_index);
                             grad_u_j[l] =
-                                inside_fe_values_structure->shape_grad_component(j, q, l+displacement_index);
+                                inside_fe_values_solid->shape_grad_component(j, q, l+displacement_index);
                           }
 
-                        Tensor<2,dim> stress = stress_structure(grad_u_j);
+                        Tensor<2,dim> stress = stress_solid(grad_u_j);
 
                         local_matrix(i, j) += (rho_s * v_s_j * v_s_i +
                                                k * scalar_product(stress, grad_v_s_i) +
                                                (u_j - k * v_s_j) * u_i) *
-                            inside_fe_values_structure->JxW(q);
+                            inside_fe_values_solid->JxW(q);
                       }
 
                     local_rhs(i) += (rho_s *
-                                     (k * rhs_function_structure.vector_value(point) +
+                                     (k * rhs_function_solid.vector_value(point) +
                                       v_s_old_timestep_solution) * v_s_i +
                                      u_old_timestep_solution * u_i) *
-                        inside_fe_values_structure->JxW(q);
+                        inside_fe_values_solid->JxW(q);
                   }
               }
           }
@@ -697,7 +697,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         grad_v_f_i[l] =
                             surface_fe_values_fluid->shape_grad_component(i, q, l+velocity_fluid_index);
                         v_s_i[l] =
-                            surface_fe_values_fluid->shape_value_component(i, q, l+velocity_structure_index);
+                            surface_fe_values_fluid->shape_value_component(i, q, l+velocity_solid_index);
                       }
 
                     double p_i =
@@ -720,7 +720,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                             grad_v_f_j[l] =
                                 surface_fe_values_fluid->shape_grad_component(j, q, l+velocity_fluid_index);
                             v_s_j[l] =
-                                surface_fe_values_fluid->shape_value_component(j, q, l+velocity_structure_index);
+                                surface_fe_values_fluid->shape_value_component(j, q, l+velocity_solid_index);
                           }
 
                         double p_j =
@@ -757,20 +757,20 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
         const double relative_cell_measure_fluid =
             cut_cell_measure_fluid / cell->measure();
-        const double relative_cell_measure_structure =
+        const double relative_cell_measure_solid =
             1.0 - relative_cell_measure_fluid;
 
         const double weight_fluid =
             max_ghost_weight * std::exp(-2.0 * std::log(max_ghost_weight) * relative_cell_measure_fluid);
-        const double weight_structure =
-            max_ghost_weight * std::exp(-2.0 * std::log(max_ghost_weight) * relative_cell_measure_structure);
+        const double weight_solid =
+            max_ghost_weight * std::exp(-2.0 * std::log(max_ghost_weight) * relative_cell_measure_solid);
 
         for (unsigned int f : cell->face_indices())
           {
             const bool face_has_fluid_gp =
                 face_has_ghost_penalty(cell, f, ActiveFEIndex::fluid);
             const bool face_has_solid_gp =
-                face_has_ghost_penalty(cell, f, ActiveFEIndex::structure);
+                face_has_ghost_penalty(cell, f, ActiveFEIndex::solid);
 
             const unsigned int invalid_subface =
                 numbers::invalid_unsigned_int;
@@ -795,12 +795,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
                 std::vector<Tensor<2,dim>> jumps_v_s_old_timestep_solution_grads(n_interface_q_points);
                 std::vector<Tensor<3,dim>> jumps_v_s_old_timestep_solution_hess(n_interface_q_points);
 
-                fe_interface_values[velocity_structure].get_jump_in_function_gradients(
+                fe_interface_values[velocity_solid].get_jump_in_function_gradients(
                       old_timestep_solution,
                       jumps_v_s_old_timestep_solution_grads);
                 if (fe_degree_solid > 1)
                   {
-                    fe_interface_values[velocity_structure].get_jump_in_function_hessians(
+                    fe_interface_values[velocity_solid].get_jump_in_function_hessians(
                           old_timestep_solution,
                           jumps_v_s_old_timestep_solution_hess);
                   }
@@ -829,7 +829,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                             fe_interface_values[pressure].jump_in_gradients(i, q) * normal;
 
                         jumps_v_s_grad_i =
-                            fe_interface_values[velocity_structure].jump_in_gradients(i, q) * normal;
+                            fe_interface_values[velocity_solid].jump_in_gradients(i, q) * normal;
 
                         // jumps in test functions to be used in get_gp
                         std::vector<Tensor<1,dim>> jumps_v_f_i {jumps_v_f_grad_i, jumps_v_f_hess_i};
@@ -839,7 +839,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         if (fe_degree_solid > 1)
                           {
                             jumps_v_s_hess_i =
-                                (fe_interface_values[velocity_structure].jump_in_hessians(i, q) * normal) * normal;
+                                (fe_interface_values[velocity_solid].jump_in_hessians(i, q) * normal) * normal;
 
                             jumps_v_s_i.push_back(jumps_v_s_hess_i);
                           }
@@ -866,7 +866,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                 fe_interface_values[pressure].jump_in_gradients(j, q) * normal;
 
                             jumps_v_s_grad_j =
-                                fe_interface_values[velocity_structure].jump_in_gradients(j, q) * normal;
+                                fe_interface_values[velocity_solid].jump_in_gradients(j, q) * normal;
 
                             jumps_u_grad_j =
                                 fe_interface_values[displacement].jump_in_gradients(j, q) * normal;
@@ -880,7 +880,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                             if (fe_degree_solid > 1)
                               {
                                 jumps_v_s_hess_j =
-                                    (fe_interface_values[velocity_structure].jump_in_hessians(j, q) * normal) * normal;
+                                    (fe_interface_values[velocity_solid].jump_in_hessians(j, q) * normal) * normal;
                                 jumps_u_hess_j   =
                                     (fe_interface_values[displacement].jump_in_hessians(j, q) * normal) * normal;
 
@@ -896,11 +896,11 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                                                  jumps_p_i,
                                                                  jumps_p_j);
 
-                            double g_v_s = GhostPenalty::get_gp (GhostPenalty::v_s, ghost_prm_v_s, weight_structure, h,
+                            double g_v_s = GhostPenalty::get_gp (GhostPenalty::v_s, ghost_prm_v_s, weight_solid, h,
                                                                  jumps_v_s_i,
                                                                  jumps_v_s_j);
 
-                            double g_u_v = GhostPenalty::get_gp (GhostPenalty::u, ghost_prm_u_v, weight_structure, h,
+                            double g_u_v = GhostPenalty::get_gp (GhostPenalty::u, ghost_prm_u_v, weight_solid, h,
                                                                  jumps_v_s_i,
                                                                  jumps_u_j);
 
@@ -917,7 +917,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                     fe_interface_values.JxW(q);
 
 #if defined(DEAL_II_LESS_9_8_0)
-                                if (!cell_contains_structure)
+                                if (!cell_contains_solid)
                                   {
                                     Tensor<1, dim> jumps_u_grad_i =
                                         fe_interface_values[displacement].jump_in_gradients(i, q) * normal;
@@ -930,7 +930,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                         jumps_u_i.push_back(jumps_u_hess_i);
                                       }
 
-                                    const double g_u_u = GhostPenalty::get_gp (GhostPenalty::u, 1.0e-15, weight_structure, h,
+                                    const double g_u_u = GhostPenalty::get_gp (GhostPenalty::u, 1.0e-15, weight_solid, h,
                                                                                jumps_u_i,
                                                                                jumps_u_j);
                                     local_stabilization(i, j) +=  k * 2. * mu * g_u_u *
@@ -951,7 +951,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                 jumps_v_s_solution_old.push_back((jumps_v_s_old_timestep_solution_hess[q] * normal) * normal);
                               }
 
-                            double old_g_v_s = GhostPenalty::get_gp (GhostPenalty::v_s, ghost_prm_v_s, weight_structure, h,
+                            double old_g_v_s = GhostPenalty::get_gp (GhostPenalty::v_s, ghost_prm_v_s, weight_solid, h,
                                                                      jumps_v_s_i,
                                                                      jumps_v_s_solution_old);
 
@@ -1059,7 +1059,7 @@ Stokes::StokesFSI<dim>::Postprocessor::get_names() const
   std::vector<std::string> solution_names(dim, "velocity_fluid");
   solution_names.push_back("pressure");
   for (unsigned int d = 0; d < dim; ++d)
-    solution_names.push_back("velocity_structure");
+    solution_names.push_back("velocity_solid");
   for (unsigned int d = 0; d < dim; ++d)
     solution_names.push_back("displacement");
   for (unsigned int d = 0; d < dim * dim; ++d)
@@ -1299,7 +1299,7 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
 
         const std::optional<FEValues<dim>> &inside_fe_values_fluid =
             non_matching_fe_values_fluid.get_inside_fe_values();
-        const std::optional<FEValues<dim>> &inside_fe_values_structure =
+        const std::optional<FEValues<dim>> &inside_fe_values_solid =
             non_matching_fe_values_fluid.get_outside_fe_values();
 
         if (inside_fe_values_fluid)
@@ -1326,22 +1326,22 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
                     inside_fe_values_fluid->JxW(q);
               }
           }
-        if (inside_fe_values_structure)
+        if (inside_fe_values_solid)
           {
             std::vector<Vector<double>>
-                local_solution_values (inside_fe_values_structure->n_quadrature_points,
+                local_solution_values (inside_fe_values_solid->n_quadrature_points,
                                        Vector<double> (3*dim+1));
             std::vector<std::vector<Tensor<1,dim>>>
-                local_solution_grads (inside_fe_values_structure->n_quadrature_points,
+                local_solution_grads (inside_fe_values_solid->n_quadrature_points,
                                       std::vector<Tensor<1,dim>> (3*dim+1));
 
-            inside_fe_values_structure->get_function_values(*solution_ptr,
+            inside_fe_values_solid->get_function_values(*solution_ptr,
                                                             local_solution_values);
-            inside_fe_values_structure->get_function_gradients(*solution_ptr,
+            inside_fe_values_solid->get_function_gradients(*solution_ptr,
                                                                local_solution_grads);
 
             for (const unsigned int q :
-                 inside_fe_values_structure->quadrature_point_indices())
+                 inside_fe_values_solid->quadrature_point_indices())
               {
                 Tensor<1,dim> v_s_solution;
                 Tensor<2,dim> grad_v_s_solution;
@@ -1349,18 +1349,18 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
                 for (unsigned int l = 0; l < dim; l++)
                   {
                     v_s_solution[l] =
-                        local_solution_values[q](l+velocity_structure_index);
+                        local_solution_values[q](l+velocity_solid_index);
                     grad_v_s_solution[l] =
                         local_solution_grads[q][l+displacement_index];
                   }
 
                 local_v_s += scalar_product(v_s_solution,
                                             v_s_solution) *
-                    inside_fe_values_structure->JxW(q);
+                    inside_fe_values_solid->JxW(q);
 
                 local_grad_u += scalar_product(grad_v_s_solution,
                                                grad_v_s_solution) *
-                    inside_fe_values_structure->JxW(q);
+                    inside_fe_values_solid->JxW(q);
               }
           }
       }
@@ -1770,7 +1770,7 @@ void Stokes::StokesFSI<dim>::run()
         << "Density fluid:      "   <<  rho_f << "\n"
         << "Viscosity fluid:    "   <<  nu_f << "\n"
         << "Inflow velocity:    "   <<  v_f_in << "\n"
-        << "Density structure:  "   <<  rho_s << "\n"
+        << "Density solid:  "   <<  rho_s << "\n"
         << "Lame coeff. mu:     "   <<  mu << "\n"
         << "Lame coeff. lambda: "   <<  lambda << "\n"
         << "gamma v_f:          "   <<  ghost_prm_v_f << "\n"

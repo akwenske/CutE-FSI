@@ -2,9 +2,9 @@ subsection Global parameters
     # finite element degrees for fluid and solid
     # Options: m_f = 2, m_s = 1, 2
     set fe_degree_fluid = 2
-    set fe_degree_solid = 1
+    set fe_degree_solid = 2
     # number of global refinements
-    set n_refinements = 3
+    set n_refinements = 2
     # number of refinement cycles for convergence analysis
     # the reference solution is computed on 
     # refinement level n_refinements + n_refinement_cylces
@@ -15,7 +15,7 @@ subsection Global parameters
     set output_skip = 1
     # sets the interface geometry
     # Options: sphere, horizontal
-    set interface_type = sphere
+    set interface_type = horizontal
 end
 
 subsection Physical constants
@@ -25,7 +25,7 @@ subsection Physical constants
     set density_fluid   = 1.0e+0
 
     # Solid parameters
-    set density_structure   = 1.0e+0
+    set density_solid   = 1.0e+0
 
     set mu      = 5.0e-3
     set lambda  = 1.0e-2
@@ -38,7 +38,7 @@ end
 
 subsection Ghost Parameters
     set ghost_parameter_velocity_fluid        = 1.0e-3
-    set ghost_parameter_velocity_structure    = 1.0e-3
+    set ghost_parameter_velocity_solid    = 1.0e-3
     set ghost_parameter_pressure              = 1.0e-3
     set ghost_parameter_displacement_velocity = 1.0e-3
     set max_ghost_weight                      = 1.0

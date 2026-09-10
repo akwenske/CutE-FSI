@@ -109,7 +109,7 @@ namespace Stokes
       enum ActiveFEIndex
       {
         fluid = 0,
-        structure  = 1,
+        solid  = 1,
         interface = 2,
       };
 
@@ -200,7 +200,7 @@ namespace Stokes
       PETScWrappers::MPI::Vector                ref_level_set_fluid;
 
       FESystem<dim>                             fe_fluid;
-      FESystem<dim>                             fe_structure;
+      FESystem<dim>                             fe_solid;
       FESystem<dim>                             fe_interface;
 
       hp::FECollection<dim>                     fe_collection;
@@ -214,7 +214,7 @@ namespace Stokes
       // doesn't work for the used NonMatching::FEValues
       const unsigned int                        velocity_fluid_index;
       const unsigned int                        pressure_index;
-      const unsigned int                        velocity_structure_index;
+      const unsigned int                        velocity_solid_index;
       const unsigned int                        displacement_index;
 
       // We have five different vectors handling the solutions.

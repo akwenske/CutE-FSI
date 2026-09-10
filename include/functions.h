@@ -80,10 +80,10 @@ public:
 };
 
 template <int dim>
-class RightHandSideStructure : public Function<dim>
+class RightHandSideSolid : public Function<dim>
 {
 public:
-  RightHandSideStructure () : Function<dim>(dim) {}
+  RightHandSideSolid () : Function<dim>(dim) {}
   virtual Tensor<1, dim> vector_value (const Point<dim> &p = Point(0,0)) const;
 };
 
