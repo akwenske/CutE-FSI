@@ -2,9 +2,7 @@
 We present CutE-FSI, a finite element program to solve linear, fully Eulerian fluid-structure interaction problems
 with a fixed interface using a cut finite element approach. For the purpose of validation, the code includes a
 complete numerical convergence test, which matches our recent theoretical error analysis. The implementation
-relies on the powerful open source finite element library https://www.dealII.org with a broad user basis around the world.
-
-## Summary
+relies on the powerful open source finite element library deal.II https://www.dealii.org with a broad user basis around the world.
 
 ## Installation instructions and executing the code
 
