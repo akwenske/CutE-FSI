@@ -27,6 +27,7 @@ $ mkdir build && cd build
 $ cmake -DDEAL_II_DIR=<path-to-deal-ii> -DCMAKE_BUILD_TYPE=Release ..
 $ make -j <N> && mpirun -np <N> ./cute-fsi
 ```
+The parameter file cute-fsi.prm is included hard-coded in the main.cc
 
 ## First steps
 
