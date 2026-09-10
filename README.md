@@ -44,7 +44,9 @@ To generate the documentation run
 ```
 $ doxygen Doxyfile
 ```
-in the CutE-FSI directory. The principal functions and folders of the repository are:<br>
+in the CutE-FSI directory. 
+
+The principal functions and folders of the repository are:<br>
 [main.cc](main.cc): Starting file as usual.<br>
 *.prm: Parameter files for running different sets of configurations<br>
 include: folder with header *.h files<br>
