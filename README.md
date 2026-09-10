@@ -39,14 +39,16 @@ The parameter file cute-fsi.prm is included hard-coded in the main.cc
 
 ## Documentation
 
-[We could briefly explain in one sentence the main functions of the code.]
-
 To generate the documentation run
 
 ```
 $ doxygen Doxyfile
 ```
-in the CutE-FSI directory.
+in the CutE-FSI directory. The principal functions and folders of the repository are:<br>
+[main.cc](main.cc): Starting file as usual.<br>
+*.prm: Parameter files for running different sets of configurations<br>
+include: folder with header *.h files<br>
+source: folder with source *.cc files<br>
 
 ## Contributing
 
