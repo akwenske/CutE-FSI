@@ -51,7 +51,7 @@ The principal functions and folders of the repository are:<br>
 *.prm: Parameter files for running different sets of configurations. Therein, global, discretization, and solver parameters are defined. Moreover, material parameters are defined. Finally, ghost penalty parameters for the CutFEM method are defined.<br>
 [cute-fsi.prm](cute-fsi.prm): Actual parameter file that is taken hard-coded in the main.cc file<br>
 [include](include): folder with header *.h files<br>
-[source](include): folder with source *.cc files<br>
+[source](source): folder with source *.cc files<br>
 [cute-fsi.h](include/cute-fsi.h): Definition of parameters and functions for the actual main implementation of our method<br>
 [cute-fsi.cc](source/cute-fsi.h): Actual implementation of the CutFEM ghost penalty method for Fully Eulerian Fluid-Structure Interaction<br>
 
