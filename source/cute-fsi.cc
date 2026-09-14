@@ -126,9 +126,9 @@ Stokes::StokesFSI<dim>::StokesFSI(const unsigned int m_f,
              FE_Nothing<dim>(), dim,
              FE_Nothing<dim>(), dim)
   , fe_solid(FE_Nothing<dim>(), dim,
-                 FE_Nothing<dim>(), 1,
-                 FE_Q<dim>(fe_degree_solid), dim, // velocity solid
-                 FE_Q<dim>(fe_degree_solid), dim) // displacement
+             FE_Nothing<dim>(), 1,
+             FE_Q<dim>(fe_degree_solid), dim, // velocity solid
+             FE_Q<dim>(fe_degree_solid), dim) // displacement
   , fe_interface(FE_Q<dim>(fe_degree_fluid), dim, // velocity fluid
                  FE_Q<dim>(fe_degree_fluid-1), 1, // pressure
                  FE_Q<dim>(fe_degree_solid), dim, // velocity solid
@@ -413,7 +413,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
   std::vector<types::global_dof_index> local_dof_indices;
 
-  const RightHandSideFluid<dim>     rhs_function_fluid;
+  const RightHandSideFluid<dim> rhs_function_fluid;
   const RightHandSideSolid<dim> rhs_function_solid;
 
   // Assemble the ghost penalty terms via an FEInterfaceValues object
@@ -603,7 +603,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                               Vector<double> (3*dim+1));
 
             inside_fe_values_solid->get_function_values(old_timestep_solution,
-                                                            old_timestep_solution_values);
+                                                        old_timestep_solution_values);
 
             for (const unsigned int q :
                  inside_fe_values_solid->quadrature_point_indices())
@@ -1336,9 +1336,9 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
                                       std::vector<Tensor<1,dim>> (3*dim+1));
 
             inside_fe_values_solid->get_function_values(*solution_ptr,
-                                                            local_solution_values);
+                                                        local_solution_values);
             inside_fe_values_solid->get_function_gradients(*solution_ptr,
-                                                               local_solution_grads);
+                                                           local_solution_grads);
 
             for (const unsigned int q :
                  inside_fe_values_solid->quadrature_point_indices())
