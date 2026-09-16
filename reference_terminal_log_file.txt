@@ -1,0 +1,124 @@
+[ 85%] Built target cute-fsi
+[100%] Run cute-fsi with Release configuration
+Creating background mesh
+
+===================================================================
+ Interface type: horizontal
+===================================================================
+m_f: 2	 m_s: 1
+Nonmatching Quadrature degree: 3
+===================================================================
+Parameters
+==========
+Density fluid:      1
+Viscosity fluid:    0.001
+Inflow velocity:    0.2
+Density solid:  1
+Lame coeff. mu:     0.005
+Lame coeff. lambda: 0.01
+gamma v_f:          0.001
+gamma v_s:          0.001
+gamma p  :          0.001
+gamma u v:          0.001
+max ghost weight:   1
+gamma N:            100
+
+Setting up discrete level set function
+Classifying cells
+Distributing degrees of freedom
+Number of dofs: 8032
+Initializing matrices
+
+===================================================================
+Timestep 0: 0 (1)
+===================================================================
+
+Initial value solution
+Writing file solution0-0.vtu
+
+===================================================================
+Timestep 1: 1 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-1.vtu
+
+===================================================================
+Timestep 2: 2 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-2.vtu
+
+===================================================================
+Timestep 3: 3 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-3.vtu
+
+===================================================================
+Timestep 4: 4 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-4.vtu
+
+===================================================================
+Timestep 5: 5 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-5.vtu
+
+===================================================================
+Timestep 6: 6 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-6.vtu
+
+===================================================================
+Timestep 7: 7 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-7.vtu
+
+===================================================================
+Timestep 8: 8 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-8.vtu
+
+===================================================================
+Timestep 9: 9 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-9.vtu
+
+===================================================================
+Timestep 10: 10 (1)
+===================================================================
+
+Assembling
+Solving system
+Writing file solution0-10.vtu
+
+Solution norms: 
+
+  h      k      ||v_f(T)||     ||v_s(T)||   ||grad u(T)||  ||grad v_f||_I,O ||grad p||_I,O 
+0.0625 1.0000 6.18541781e-02 1.81899363e-03 6.81293568e-02   2.35528019e+00 1.68005135e-03 
+
+[100%] Built target run
