@@ -1737,7 +1737,7 @@ template <int dim>
 void Stokes::StokesFSI<dim>::do_convergence_analysis()
 {
   ConvergenceTable   convergence_table; // norms of errors
-  ConvergenceTable       table; // norms of current solution
+  ConvergenceTable   table; // norms of current solution
 
   // Variables to be stored the space-time-l2 norms:
   // error:
@@ -1764,8 +1764,6 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
   double v_s_T_ref;
   double grad_u_T_ref;
 
-  double h; // mesh size
-
   // We compute the error on the current coarse temporal discretization.
   // Hence, we need to identify the timestep number of the reference solution
   // that corresponds to the same point in time as the current timestep number
@@ -1777,16 +1775,6 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
     timestep_no_offset = std::pow(2,n_refinement_cycles);
 
   const unsigned int output_skip = parameters.output_skip;
-
-  for (const auto &cell : triangulation.active_cell_iterators())
-    {
-      if (cell->is_locally_owned())
-        {
-          h = cell->minimum_vertex_distance();
-          break;
-        }
-    }
-  h = Utilities::MPI::max(h, mpi_communicator);
 
   compute_reference_solution(v_f_T_ref,
                              v_s_T_ref,
@@ -1953,21 +1941,6 @@ void Stokes::StokesFSI<dim>::run()
         << "gamma N:            "   <<  nitsche_parameter << "\n"
         << std::endl;
 
-  ConvergenceTable table; // norms of current solution
-
-  // Variables to be stored the space-time-l2 norms:
-  // current solution:
-  double sum_grad_v_f_sol;
-  double sum_grad_p_sol;
-
-  // Variables to be stored the space-l2 norms at the end time:
-  // current solution:
-  double v_f_T_sol;
-  double v_s_T_sol;
-  double grad_u_T_sol;
-
-  const unsigned int output_skip = parameters.output_skip;
-
   for (const auto &cell : triangulation.active_cell_iterators())
     {
       if (cell->is_locally_owned())
@@ -1984,6 +1957,20 @@ void Stokes::StokesFSI<dim>::run()
     }
   else
     {
+      ConvergenceTable table; // norms of current solution
+
+      // Variables to be stored the space-time-l2 norms:
+      // current solution:
+      double sum_grad_v_f_sol;
+      double sum_grad_p_sol;
+
+      // Variables to be stored the space-l2 norms at the end time:
+      // current solution:
+      double v_f_T_sol;
+      double v_s_T_sol;
+      double grad_u_T_sol;
+
+      const unsigned int output_skip = parameters.output_skip;
       setup_discrete_level_sets(level_set_dof_handler,
                                 level_set_fluid);
       pcout << "Classifying cells" << std::endl;
