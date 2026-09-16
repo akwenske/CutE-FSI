@@ -143,7 +143,13 @@ namespace Stokes
 
       void set_bc();
 
-      void solve();
+      void solve_linear_system();
+
+      void solve_timestep();
+
+      void output_initial_timestep(const unsigned int cycle = 0);
+
+      void do_convergence_analysis();
 
       void output_results(
           const unsigned int cycle,
@@ -153,7 +159,7 @@ namespace Stokes
       void L2_space_norm (
           double & v_f,
           double & v_s,
-          double & symgrad_u,
+          double & grad_u,
           SolutionType solution_type);
 
       void L2_space_time_norm(
@@ -165,7 +171,25 @@ namespace Stokes
           std::string filename,
           PETScWrappers::MPI::Vector &solution_vector);
 
-      void compute_reference_solution();
+      void save_reference_solution();
+
+      void compute_error(double timestep_no_offset);
+
+      void compute_reference_solution(
+          double & v_f_T,
+          double & v_s_T,
+          double & grad_u_T,
+          double & sum_grad_v_f,
+          double & sum_grad_p);
+
+      void write_norms_to_table(
+          double v_f_T,
+          double v_s_T,
+          double grad_u_T,
+          double sum_grad_v_f,
+          double sum_grad_p,
+          ConvergenceTable & table,
+          SolutionType solution_type);
 
       bool face_has_ghost_penalty(
           const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -243,6 +267,8 @@ namespace Stokes
       unsigned int n_refinements;
       unsigned int n_refinement_cycles;
 
+      double h; // mesh size
+
       // Conduct convergence analysis in space or in time
       bool         do_spatial_analysis;
       bool         do_temporal_analysis;
@@ -274,15 +300,6 @@ namespace Stokes
       double       ghost_prm_u_v;
       double       max_ghost_weight;
       double       nitsche_parameter;
-
-      // Norms of the reference solution
-      // ||v_f(T)||, ||v_s(T)||, ||grad u(T)|| as space norms and
-      // sqrt(sum_k ||grad v_f||^2), sqrt(sum_k h^2||grad p||^2) as space-time norms
-      double       v_f_T_ref;
-      double       v_s_T_ref;
-      double       grad_u_T_ref;
-      double       sum_grad_v_f_ref;
-      double       sum_grad_p_ref;
 
       class Postprocessor;
     };

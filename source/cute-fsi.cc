@@ -24,6 +24,7 @@
  */
 
 #include "../include/cute-fsi.h"
+#include "../include/postprocessor.h"
 
 using namespace dealii;
 
@@ -1011,7 +1012,7 @@ void Stokes::StokesFSI<dim>::set_bc()
 
 /** Solve the linear system of equations via the sparse direct solver MUMPS. */
 template <int dim>
-void Stokes::StokesFSI<dim>::solve()
+void Stokes::StokesFSI<dim>::solve_linear_system()
 {
   pcout << "Solving system" << std::endl;
 
@@ -1030,123 +1031,65 @@ void Stokes::StokesFSI<dim>::solve()
   solution = completely_distributed_solution;
 }
 
-/** This class handles all solution values and derived quantities for graphical output.
-  * In addition to the solution values, the gradients of the fluid velocity, the deformation
-  * and the pressure will be handled as they appear in the numerical analysis of the error.*/
+/** Solve the fsi problem for a given timestep*/
 template <int dim>
-class Stokes::StokesFSI<dim>::Postprocessor : public DataPostprocessor<dim>
+void Stokes::StokesFSI<dim>::solve_timestep()
 {
-public:
-  Postprocessor () {}
+  time += k;
+  timestep_no++;
+  old_timestep_solution = solution;
 
-  virtual void evaluate_vector_field(
-      const DataPostprocessorInputs::Vector<dim> &input_data,
-      std::vector<Vector<double>> &computed_quantities) const override;
+  pcout << "\n=============================="
+        << "====================================="
+        << "\nTimestep " << timestep_no
+        << ": " << time
+        << " (" << k << ")"
+        << "\n=============================="
+        << "====================================="
+        << std::endl;
 
-  virtual std::vector<std::string> get_names() const override;
+  pcout << std::endl;
 
-  virtual std::vector<
-  DataComponentInterpretation::DataComponentInterpretation>
-  get_data_component_interpretation() const override;
-
-  virtual UpdateFlags get_needed_update_flags() const override;
-};
-
-template <int dim>
-std::vector<std::string>
-Stokes::StokesFSI<dim>::Postprocessor::get_names() const
-{
-  std::vector<std::string> solution_names(dim, "velocity_fluid");
-  solution_names.push_back("pressure");
-  for (unsigned int d = 0; d < dim; ++d)
-    solution_names.push_back("velocity_solid");
-  for (unsigned int d = 0; d < dim; ++d)
-    solution_names.push_back("displacement");
-  for (unsigned int d = 0; d < dim * dim; ++d)
-    solution_names.push_back("grad_v_f");
-  for (unsigned int d = 0; d < dim; ++d)
-    solution_names.push_back("grad_p");
-  for (unsigned int d = 0; d < dim*dim; ++d)
-    solution_names.push_back("grad_u");
-
-  return solution_names;
+  set_bc();
+  assemble_system();
+  solve_linear_system();
 }
 
+/** Write the initial timestep solution to vtk.
+ * In case of convergence analysis, also write the initial error.*/
 template <int dim>
-std::vector<DataComponentInterpretation::DataComponentInterpretation>
-Stokes::StokesFSI<dim>::Postprocessor::get_data_component_interpretation()
-const
+void Stokes::StokesFSI<dim>::output_initial_timestep(const unsigned int cycle)
 {
-  std::vector<DataComponentInterpretation::DataComponentInterpretation>
-      interpretation(dim, DataComponentInterpretation::component_is_part_of_vector); // v_f
-  interpretation.push_back(DataComponentInterpretation::component_is_scalar); // p
-  for (unsigned int d = 0; d < dim; ++d)
-    interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector); // v_s
-  for (unsigned int d = 0; d < dim; ++d)
-    interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector); // u
-  for (unsigned int d = 0; d < dim * dim; ++d)
-    interpretation.push_back(DataComponentInterpretation::component_is_part_of_tensor); // grad_v_f
-  for (unsigned int d = 0; d < dim; ++d)
-    interpretation.push_back(DataComponentInterpretation::component_is_part_of_vector); // grad_p
-  for (unsigned int d = 0; d < dim * dim; ++d)
-    interpretation.push_back(DataComponentInterpretation::component_is_part_of_tensor); // grad_u
+  pcout << "\n=============================="
+        << "====================================="
+        << "\nTimestep " << timestep_no
+        << ": " << time
+        << " (" << k << ")"
+        << "\n=============================="
+        << "====================================="
+        << std::endl;
 
-  return interpretation;
-}
+  pcout << std::endl;
+  pcout << "Initial value solution" << std::endl;
+  output_results(cycle,
+                 timestep_no,
+                 SolutionType::current_solution);
 
-template <int dim>
-UpdateFlags
-Stokes::StokesFSI<dim>::Postprocessor::get_needed_update_flags() const
-{
-  return update_values | update_gradients;
-}
-
-template <int dim>
-void Stokes::StokesFSI<dim>::Postprocessor::evaluate_vector_field(
-    const DataPostprocessorInputs::Vector<dim> &input_data,
-    std::vector<Vector<double>>                &computed_quantities) const
-{
-  AssertDimension (input_data.solution_values.size(),
-                   computed_quantities.size());
-  AssertDimension (input_data.solution_gradients.size(),
-                   computed_quantities.size());
-
-  for (unsigned int p = 0; p < input_data.solution_gradients.size(); ++p)
+  if (n_refinement_cycles > 0)
     {
-      for (unsigned int d = 0; d < dim; ++d)
-        {
-          computed_quantities[p][d] =
-              input_data.solution_values[p][d]; // v_f
+      // The initial value of each solution is the zero vector, hence the initial
+      // error is always zero as well.
+      const IndexSet locally_owned_ref_dofs =
+          ref_solution.locally_owned_elements();
+      const IndexSet locally_relevant_ref_dofs =
+          DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
 
-          computed_quantities[p][dim+1+d] =
-              input_data.solution_values[p][dim+1+d]; // v_s
+      err.reinit(locally_owned_ref_dofs,
+                 locally_relevant_ref_dofs,
+                 mpi_communicator);
 
-          computed_quantities[p][2*dim+1+d] =
-              input_data.solution_values[p][2*dim+1+d]; // u
-        }
-      computed_quantities[p][dim] =
-          input_data.solution_values[p][dim]; // p
-
-      const unsigned int grad_v_f_index = 3*dim+1;
-      const unsigned int grad_p_index = grad_v_f_index + dim*dim;
-      const unsigned int grad_u_index = grad_p_index + dim;
-
-      for (unsigned int d=0; d<dim; ++d)
-        {
-          for (unsigned int e=0; e<dim; ++e)
-            {
-              const unsigned int unrolled_index =
-                  Tensor<2,dim>::component_to_unrolled_index(TableIndices<2>(d,e));
-
-              computed_quantities[p][grad_v_f_index + unrolled_index] =
-                  input_data.solution_gradients[p][d][e]; // grad_v_f
-
-              computed_quantities[p][grad_u_index + unrolled_index] =
-                  input_data.solution_gradients[p][2*dim+1+d][e]; // grad_u
-            }
-          computed_quantities[p][grad_p_index+d] =
-              input_data.solution_gradients[p][dim][d]; // grad_p
-        }
+      output_results(cycle, timestep_no,
+                     SolutionType::error);
     }
 }
 
@@ -1548,18 +1491,160 @@ void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
   ref_solution = completely_distributed_ref_solution;
 }
 
+/** Saves the reference solution to file.
+ * In parallel, each process writes its own file.*/
+template<int dim>
+void Stokes::StokesFSI<dim>::save_reference_solution()
+{
+  pcout << "Save reference solution." << std::endl;
+  const std::string filename =
+      "ref-solution-"
+      + std::to_string(this_mpi_process)
+      + "-"
+      + std::to_string(n_refinement_cycles)
+      + "-"
+      + std::to_string(timestep_no)
+      + ".txt";
+
+  std::ofstream solution_file;
+  solution_file.open(filename);
+  solution.print(solution_file,12);
+  solution_file.close();
+}
+
+
+/** Compute the error between the current and the saved reference solution.
+ * @param timestep_no_offset offset between coarse and reference time mesh
+*/
+template <int dim>
+void Stokes::StokesFSI<dim>::compute_error(double timestep_no_offset)
+{
+  unsigned int reference_timestep_no = timestep_no * timestep_no_offset;
+  const std::string filename =
+      "ref-solution-"
+      + std::to_string(this_mpi_process)
+      + "-"
+      + std::to_string(n_refinement_cycles)
+      + "-"
+      + std::to_string(reference_timestep_no)
+      + ".txt";
+
+  pcout << "Reading in reference solution "
+        << reference_timestep_no << std::endl;
+
+  read_in_solution(filename, ref_solution);
+
+  pcout << "Interpolating current solution to reference mesh" << std::endl;
+
+  const IndexSet locally_owned_ref_dofs =
+      ref_solution.locally_owned_elements();
+  const IndexSet locally_relevant_ref_dofs =
+      DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
+
+  coarse_solution_on_fine_grid.reinit(locally_owned_ref_dofs,
+                                      mpi_communicator);
+
+  err.reinit(locally_owned_ref_dofs,
+             locally_relevant_ref_dofs,
+             mpi_communicator);
+
+  if (do_spatial_analysis)
+    {
+      VectorTools::interpolate_to_different_mesh(dof_handler,
+                                                 solution,
+                                                 ref_dof_handler,
+                                                 coarse_solution_on_fine_grid);
+    }
+  else
+    {
+      coarse_solution_on_fine_grid = solution;
+    }
+
+  coarse_solution_on_fine_grid -= ref_solution;
+  err = coarse_solution_on_fine_grid;
+}
+
+/** Writes the computed norms to the given convergence table.
+   * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
+   * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
+   * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
+   * @param sum_grad_v_f \f$ \sum_{n=1}^N k   ||\nabla v_f(t_n)||_{\Omega_f}^2 \f$.
+   * @param sum_grad_p \f$ \sum_{n=1}^N k h^2 ||\nabla p(t_n)||_{\Omega_f}^2 \f$.
+*/
+template <int dim>
+void Stokes::StokesFSI<dim>::write_norms_to_table(double v_f_T,
+                                                  double v_s_T,
+                                                  double grad_u_T,
+                                                  double sum_grad_v_f,
+                                                  double sum_grad_p,
+                                                  ConvergenceTable &table,
+                                                  SolutionType solution_type)
+{
+  std::map<std::string, std::string> table_key_map;
+  if (solution_type == SolutionType::error)
+    {
+      table_key_map = {
+        {"v_f_T",        "||err_v_f(T)||"},
+        {"v_s_T",        "||err_v_s(T)||"},
+        {"grad_u_T",     "||grad err_u(T)||"},
+        {"sum_grad_v_f", "||grad err_v_f||_I,O"},
+        {"sum_grad_p",   "||grad err_p||_I,O"}};
+    }
+  else if (solution_type == SolutionType::current_solution)
+    {
+      table_key_map = {
+        {"v_f_T",        "||v_f(T)||"},
+        {"v_s_T",        "||v_s(T)||"},
+        {"grad_u_T",     "||grad u(T)||"},
+        {"sum_grad_v_f", "||grad v_f||_I,O"},
+        {"sum_grad_p",   "||grad p||_I,O"}};
+    }
+  else
+    {
+      std::string error_msg = std::string("Given SolutionType is unknown!")
+          + std::string("SolutionType error or current_solution is required!");
+      throw std::runtime_error(error_msg);
+    }
+
+  table.add_value("h", h);
+  table.add_value("k", k);
+
+  table.add_value(table_key_map.at("v_f_T"),        v_f_T);
+  table.add_value(table_key_map.at("v_s_T"),        v_s_T);
+  table.add_value(table_key_map.at("grad_u_T"),     grad_u_T);
+  table.add_value(table_key_map.at("sum_grad_v_f"), sum_grad_v_f);
+  table.add_value(table_key_map.at("sum_grad_p"),   sum_grad_p);
+
+  for (auto table_key_pair : table_key_map)
+    {
+      table.set_precision(table_key_pair.second, 8);
+      table.set_scientific(table_key_pair.second, true);
+
+      if (solution_type == SolutionType::error)
+          table.evaluate_convergence_rates(table_key_pair.second,
+                                            ConvergenceTable::reduction_rate_log2);
+    }
+}
+
 /** Compute the reference solution on the finest mesh.
    *
    * The refinement level of the finest mesh corresponds to
    * n_refinements + n_refinement_cycles. Save the reference solution for each
-   * timestep, compute the reference norms and initialize the reference DoFHandlers,
-   * level set function, triangulation and mesh classifier.
+   * timestep, compute the reference norms v_f,...,sum_grad_p and initialize the
+   * reference DoFHandlers, level set function, triangulation and mesh classifier.
+   * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
+   * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
+   * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
+   * @param sum_grad_v_f \f$ \sum_{n=1}^N k   ||\nabla v_f(t_n)||_{\Omega_f}^2 \f$.
+   * @param sum_grad_p \f$ \sum_{n=1}^N k h^2 ||\nabla p(t_n)||_{\Omega_f}^2 \f$.
    */
 template <int dim>
-void Stokes::StokesFSI<dim>::compute_reference_solution()
+void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
+                                                        double & v_s_T,
+                                                        double & grad_u_T,
+                                                        double & sum_grad_v_f,
+                                                        double & sum_grad_p)
 {
-  std::ios_base::fmtflags f(pcout.get_stream().flags());
-
   pcout << "\n=============================="
         << "====================================="
         << "\nCompute reference solution"
@@ -1580,109 +1665,63 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
   distribute_dofs(dof_handler, mesh_classifier_fluid);
   initialize_matrices();
 
-  pcout << "\n=============================="
-        << "====================================="
-        << "\nTimestep " << timestep_no
-        << ": " << time
-        << " (" << k << ")"
-        << "\n=============================="
-        << "====================================="
-        << std::endl;
+  // to compute the errors later on the refinement level of the reference solution,
+  // corresponding DofHandlers need to be initialized.
+  pcout << "Setting up reference dof handler." << std::endl;
 
-  pcout << std::endl;
-  pcout << "Initial value solution" << std::endl;
-  output_results(n_refinement_cycles,
-                 timestep_no,
-                 SolutionType::current_solution);
+  ref_triangulation.copy_triangulation(triangulation);
 
-  sum_grad_v_f_ref = 0.0;
-  sum_grad_p_ref = 0.0;
+  setup_discrete_level_sets(ref_level_set_dof_handler,
+                            ref_level_set_fluid);
+
+  ref_mesh_classifier_fluid.reclassify();
+
+  distribute_dofs(ref_dof_handler,
+                  ref_mesh_classifier_fluid);
+
+  const IndexSet locally_owned_ref_dofs =
+      ref_dof_handler.locally_owned_dofs();
+  const IndexSet locally_relevant_ref_dofs =
+      DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
+  ref_solution.reinit(locally_owned_ref_dofs,
+                      locally_relevant_ref_dofs,
+                      mpi_communicator);
+
+  output_initial_timestep(n_refinement_cycles);
+
+  sum_grad_v_f = 0.0;
+  sum_grad_p   = 0.0;
 
   while (time < end_time)
     {
-      time += k;
-      timestep_no++;
-      old_timestep_solution = solution;
+      solve_timestep();
 
-      pcout << "\n=============================="
-            << "====================================="
-            << "\nTimestep " << timestep_no
-            << ": " << time
-            << " (" << k << ")"
-            << "\n=============================="
-            << "====================================="
-            << std::endl;
+      save_reference_solution();
 
-      pcout << std::endl;
-
-      set_bc();
-      assemble_system();
-      solve();
-
-      L2_space_time_norm(sum_grad_v_f_ref, sum_grad_p_ref,
+      L2_space_time_norm(sum_grad_v_f, sum_grad_p,
                          SolutionType::current_solution);
-
-      pcout << "Save reference solution." << std::endl;
-      const std::string filename =
-          "ref-solution-"
-          + std::to_string(this_mpi_process)
-          + "-"
-          + std::to_string(n_refinement_cycles)
-          + "-"
-          + std::to_string(timestep_no)
-          + ".txt";
-
-      std::ofstream solution_file;
-      solution_file.open(filename);
-      solution.print(solution_file,12);
-      solution_file.close();
 
       if (timestep_no % output_skip == 0)
         output_results(n_refinement_cycles, timestep_no,
                        SolutionType::current_solution);
     }
 
-  L2_space_norm(v_f_T_ref, v_s_T_ref, grad_u_T_ref,
+  L2_space_norm(v_f_T, v_s_T, grad_u_T,
                 SolutionType::current_solution);
 
-  sum_grad_v_f_ref = std::sqrt(sum_grad_v_f_ref);
-  sum_grad_p_ref = std::sqrt(sum_grad_p_ref);
+  sum_grad_v_f = std::sqrt(sum_grad_v_f);
+  sum_grad_p   = std::sqrt(sum_grad_p);
 
-  // In case of a convergence analysis, prepare all necessary runtime variables
-  if (n_refinement_cycles > 0)
-    {
-      // To compute the errors later on the refinement level of the reference solution,
-      // corresponding DofHandlers need to be initialized.
-      pcout << "Setting up reference dof handler." << std::endl;
+  // reset the mesh, mesh size and timestep size for the coarse solutions
+  pcout << "Reinit time variables and triangulation." << std::endl;
 
-      ref_triangulation.copy_triangulation(triangulation);
+  time = 0.0;
+  timestep_no = 0;
 
-      setup_discrete_level_sets(ref_level_set_dof_handler,
-                                ref_level_set_fluid);
-
-      ref_mesh_classifier_fluid.reclassify();
-
-      distribute_dofs(ref_dof_handler,
-                      ref_mesh_classifier_fluid);
-
-      const IndexSet locally_owned_ref_dofs =
-          ref_dof_handler.locally_owned_dofs();
-      const IndexSet locally_relevant_ref_dofs =
-          DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
-      ref_solution.reinit(locally_owned_ref_dofs,
-                          locally_relevant_ref_dofs,
-                          mpi_communicator);
-
-      pcout << "Reinit time variables and triangulation." << std::endl;
-
-      time = 0.0;
-      timestep_no = 0;
-
-      if (do_spatial_analysis)
-        triangulation.coarsen_global(n_refinement_cycles);
-      if (do_temporal_analysis)
-        k *= std::pow(2,n_refinement_cycles);
-    }
+  if (do_spatial_analysis)
+    triangulation.coarsen_global(n_refinement_cycles);
+  if (do_temporal_analysis)
+    k *= std::pow(2,n_refinement_cycles);
 
   pcout << "\n=============================="
         << "====================================="
@@ -1691,28 +1730,14 @@ void Stokes::StokesFSI<dim>::compute_reference_solution()
         << "====================================="
         << "\n\n"
         << std::endl;
-
-  pcout.get_stream().flags(f);
 }
 
-/** Start the computation of the FSI problem.
-   *
-   * If do_spatial_analysis or do_temporal_analysis are set to true, includes a convergence
-   * study in space and/or time. In case of a spatial analysis, the mesh refinement level
-   * for the reference solution corresponds to n_refinements + n_refinement_cycles.
-   * If n_refinement_cycles is set to 0, no convergence analysis will be conducted
-   * but the solution for a single run will still be computed.
-   * For each cycle of the convergence analysis, both the space time and space norms for
-   * the current solution as well as the error will be printed in a table.
-   */
+/** Conduct a convergence analysis in time and/or space for n_refinement_cycles cycles. */
 template <int dim>
-void Stokes::StokesFSI<dim>::run()
+void Stokes::StokesFSI<dim>::do_convergence_analysis()
 {
-  std::ios_base::fmtflags f(pcout.get_stream().flags());
-  set_runtime_parameters();
-
   ConvergenceTable   convergence_table; // norms of errors
-  TableHandler       table; // norms of current solution
+  ConvergenceTable       table; // norms of current solution
 
   // Variables to be stored the space-time-l2 norms:
   // error:
@@ -1721,6 +1746,9 @@ void Stokes::StokesFSI<dim>::run()
   // current solution:
   double sum_grad_v_f_sol;
   double sum_grad_p_sol;
+  // reference solution:
+  double sum_grad_v_f_ref;
+  double sum_grad_p_ref;
 
   // Variables to be stored the space-l2 norms at the end time:
   // error:
@@ -1731,6 +1759,10 @@ void Stokes::StokesFSI<dim>::run()
   double v_f_T_sol;
   double v_s_T_sol;
   double grad_u_T_sol;
+  // reference solution:
+  double v_f_T_ref;
+  double v_s_T_ref;
+  double grad_u_T_ref;
 
   double h; // mesh size
 
@@ -1744,7 +1776,7 @@ void Stokes::StokesFSI<dim>::run()
   if (do_temporal_analysis)
     timestep_no_offset = std::pow(2,n_refinement_cycles);
 
-  make_grid();
+  const unsigned int output_skip = parameters.output_skip;
 
   for (const auto &cell : triangulation.active_cell_iterators())
     {
@@ -1755,6 +1787,146 @@ void Stokes::StokesFSI<dim>::run()
         }
     }
   h = Utilities::MPI::max(h, mpi_communicator);
+
+  compute_reference_solution(v_f_T_ref,
+                             v_s_T_ref,
+                             grad_u_T_ref,
+                             sum_grad_v_f_ref,
+                             sum_grad_p_ref);
+
+  for (unsigned int cycle = 0; cycle < n_refinement_cycles; cycle++)
+    {
+      pcout << "Refinement cycle " << cycle << std::endl;
+      setup_discrete_level_sets(level_set_dof_handler,
+                                level_set_fluid);
+      pcout << "Classifying cells" << std::endl;
+      mesh_classifier_fluid.reclassify();
+      distribute_dofs(dof_handler, mesh_classifier_fluid);
+      initialize_matrices();
+
+      sum_grad_v_f_err = 0.0;
+      sum_grad_p_err = 0.0;
+      sum_grad_v_f_sol = 0.0;
+      sum_grad_p_sol = 0.0;
+
+      output_initial_timestep(cycle);
+
+      while (time < end_time)
+        {
+          solve_timestep();
+
+          compute_error(timestep_no_offset);
+
+          L2_space_time_norm(sum_grad_v_f_err, sum_grad_p_err,
+                             SolutionType::error);
+          L2_space_time_norm(sum_grad_v_f_sol, sum_grad_p_sol,
+                             SolutionType::current_solution);
+
+          if (timestep_no % output_skip == 0)
+            {
+              output_results(cycle, timestep_no,
+                             SolutionType::current_solution);
+              output_results(cycle, timestep_no,
+                             SolutionType::error);
+            }
+        }
+
+      L2_space_norm(v_f_T_err, v_s_T_err, grad_u_T_err,
+                    SolutionType::error);
+      L2_space_norm(v_f_T_sol, v_s_T_sol, grad_u_T_sol,
+                    SolutionType::current_solution);
+
+      sum_grad_v_f_err = std::sqrt(sum_grad_v_f_err);
+      sum_grad_p_err   = std::sqrt(sum_grad_p_err);
+      sum_grad_v_f_sol = std::sqrt(sum_grad_v_f_sol);
+      sum_grad_p_sol   = std::sqrt(sum_grad_p_sol);
+
+      // Add the computed values to the (convergence-) tables
+      convergence_table.add_value("Cycle", cycle);
+      write_norms_to_table(v_f_T_err,
+                           v_s_T_err,
+                           grad_u_T_err,
+                           sum_grad_v_f_err,
+                           sum_grad_p_err,
+                           convergence_table,
+                           SolutionType::error);
+
+      table.add_value("Cycle", cycle);
+      write_norms_to_table(v_f_T_sol,
+                           v_s_T_sol,
+                           grad_u_T_sol,
+                           sum_grad_v_f_sol,
+                           sum_grad_p_sol,
+                           table,
+                           SolutionType::current_solution);
+
+      // Add the norms of the reference solution to the table in the last cycle
+      if (cycle == n_refinement_cycles - 1)
+        {
+          if (do_spatial_analysis)
+            h *= 0.5;
+          if (do_temporal_analysis)
+            k *= 0.5;
+
+          table.add_value("Cycle", n_refinement_cycles);
+          write_norms_to_table(v_f_T_ref,
+                               v_s_T_ref,
+                               grad_u_T_ref,
+                               sum_grad_v_f_ref,
+                               sum_grad_p_ref,
+                               table,
+                               SolutionType::current_solution);
+
+        pcout << std::endl;
+        pcout << "Solution norms: " << std::endl;
+        pcout << std::endl;
+        if (this_mpi_process == 0)
+          table.write_text(std::cout);
+        pcout << std::endl;
+
+        pcout << std::endl;
+        pcout << "Convergence rates using reference solution: " << std::endl;
+        pcout << std::endl;
+        if (this_mpi_process == 0)
+          convergence_table.write_text(std::cout);
+        pcout << std::endl;
+      }
+
+      // Prepare for the next cycle
+      time = 0.0;
+      timestep_no = 0;
+
+      if (do_spatial_analysis)
+        {
+          triangulation.refine_global(1);
+          h *= 0.5;
+        }
+      if (do_temporal_analysis)
+        {
+          k *= 0.5;
+          timestep_no_offset *= 0.5;
+        }
+    }
+}
+
+/** Start the computation of the FSI problem.
+   *
+   * If n_refinement_cycles > 0 includes a convergence
+   * study in space and/or time, depending on do_spatial_analysis and do_temporal_analysis.
+   * In case of a spatial analysis, the mesh refinement level for the reference solution
+   * corresponds to n_refinements + n_refinement_cycles.
+   * If n_refinement_cycles is set to 0, no convergence analysis will be conducted
+   * but the solution for a single run will still be computed.
+   * For each computation, both the space time and space norms for
+   * the current solution will be printed in a table. In case of a convergence analysis,
+   * the errors will too be printed in a table including the estimated convergence orders.
+   */
+template <int dim>
+void Stokes::StokesFSI<dim>::run()
+{
+  set_runtime_parameters();
+
+  make_grid();
 
   pcout << "\n=============================="
         << "====================================="  << std::endl;
@@ -1781,13 +1953,37 @@ void Stokes::StokesFSI<dim>::run()
         << "gamma N:            "   <<  nitsche_parameter << "\n"
         << std::endl;
 
+  ConvergenceTable table; // norms of current solution
+
+  // Variables to be stored the space-time-l2 norms:
+  // current solution:
+  double sum_grad_v_f_sol;
+  double sum_grad_p_sol;
+
+  // Variables to be stored the space-l2 norms at the end time:
+  // current solution:
+  double v_f_T_sol;
+  double v_s_T_sol;
+  double grad_u_T_sol;
+
   const unsigned int output_skip = parameters.output_skip;
 
-  compute_reference_solution();
-
-  for (unsigned int cycle = 0; cycle < n_refinement_cycles; cycle++)
+  for (const auto &cell : triangulation.active_cell_iterators())
     {
-      pcout << "Refinement cycle " << cycle << std::endl;
+      if (cell->is_locally_owned())
+        {
+          h = cell->minimum_vertex_distance();
+          break;
+        }
+    }
+  h = Utilities::MPI::max(h, mpi_communicator);
+
+  if (n_refinement_cycles > 0)
+    {
+      do_convergence_analysis();
+    }
+  else
+    {
       setup_discrete_level_sets(level_set_dof_handler,
                                 level_set_fluid);
       pcout << "Classifying cells" << std::endl;
@@ -1795,302 +1991,36 @@ void Stokes::StokesFSI<dim>::run()
       distribute_dofs(dof_handler, mesh_classifier_fluid);
       initialize_matrices();
 
-      sum_grad_v_f_err = 0.0;
-      sum_grad_p_err = 0.0;
-      sum_grad_v_f_sol = 0.0;
-      sum_grad_p_sol = 0.0;
-
-      pcout << "\n=============================="
-            << "====================================="
-            << "\nTimestep " << timestep_no
-            << ": " << time
-            << " (" << k << ")"
-            << "\n=============================="
-            << "====================================="
-            << std::endl;
-
-      pcout << std::endl;
-
-      pcout << "Initial value solution" << std::endl;
-      output_results(cycle,timestep_no,
-                     SolutionType::current_solution);
-
-      // The initial value of each solution is the zero vector, hence the initial
-      // error is always zero as well.
-      if (do_spatial_analysis || do_temporal_analysis)
-        {
-          const IndexSet locally_owned_ref_dofs =
-              ref_solution.locally_owned_elements();
-          const IndexSet locally_relevant_ref_dofs =
-              DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
-
-          err.reinit(locally_owned_ref_dofs,
-                     locally_relevant_ref_dofs,
-                     mpi_communicator);
-
-          output_results(cycle, timestep_no,
-                         SolutionType::error);
-        }
+      output_initial_timestep();
 
       while (time < end_time)
         {
-          time += k;
-          timestep_no++;
-          old_timestep_solution = solution;
-
-          pcout << "\n=============================="
-                << "====================================="
-                << "\nTimestep " << timestep_no
-                << ": " << time
-                << " (" << k << ")"
-                << "\n=============================="
-                << "====================================="
-                << std::endl;
-
-          pcout << std::endl;
-
-          set_bc();
-          assemble_system();
-          solve();
-
-          // Compute the error between current and reference solution
-          if (do_spatial_analysis || do_temporal_analysis)
-            {
-              unsigned int reference_timestep_no = timestep_no * timestep_no_offset;
-              const std::string filename =
-                  "ref-solution-"
-                  + std::to_string(this_mpi_process)
-                  + "-"
-                  + std::to_string(n_refinement_cycles)
-                  + "-"
-                  + std::to_string(reference_timestep_no)
-                  + ".txt";
-
-              pcout << "Reading in reference solution "
-                    << reference_timestep_no << std::endl;
-
-              read_in_solution(filename, ref_solution);
-
-              pcout << "Interpolating current solution to reference mesh" << std::endl;
-
-              const IndexSet locally_owned_ref_dofs =
-                  ref_solution.locally_owned_elements();
-              const IndexSet locally_relevant_ref_dofs =
-                  DoFTools::extract_locally_relevant_dofs(ref_dof_handler);
-
-              coarse_solution_on_fine_grid.reinit(locally_owned_ref_dofs,
-                                                  mpi_communicator);
-
-              err.reinit(locally_owned_ref_dofs,
-                         locally_relevant_ref_dofs,
-                         mpi_communicator);
-
-              if (do_spatial_analysis)
-                {
-                  VectorTools::interpolate_to_different_mesh(dof_handler,
-                                                             solution,
-                                                             ref_dof_handler,
-                                                             coarse_solution_on_fine_grid);
-                }
-              else
-                {
-                  coarse_solution_on_fine_grid = solution;
-                }
-
-              coarse_solution_on_fine_grid -= ref_solution;
-              err = coarse_solution_on_fine_grid;
-            }
-
-          L2_space_time_norm(sum_grad_v_f_err, sum_grad_p_err,
-                             SolutionType::error);
+          solve_timestep();
           L2_space_time_norm(sum_grad_v_f_sol, sum_grad_p_sol,
                              SolutionType::current_solution);
-
           if (timestep_no % output_skip == 0)
             {
-              output_results(cycle, timestep_no,
+              output_results(0, timestep_no,
                              SolutionType::current_solution);
-              output_results(cycle, timestep_no,
-                             SolutionType::error);
             }
         }
 
-      L2_space_norm(v_f_T_err, v_s_T_err, grad_u_T_err,
-                    SolutionType::error);
       L2_space_norm(v_f_T_sol, v_s_T_sol, grad_u_T_sol,
                     SolutionType::current_solution);
 
-      sum_grad_v_f_err = std::sqrt(sum_grad_v_f_err);
-      sum_grad_p_err   = std::sqrt(sum_grad_p_err);
       sum_grad_v_f_sol = std::sqrt(sum_grad_v_f_sol);
       sum_grad_p_sol   = std::sqrt(sum_grad_p_sol);
 
+      // Add the computed values to the table
+      write_norms_to_table(v_f_T_sol,
+                           v_s_T_sol,
+                           grad_u_T_sol,
+                           sum_grad_v_f_sol,
+                           sum_grad_p_sol,
+                           table,
+                           SolutionType::current_solution);
+
       pcout << std::endl;
-      pcout << "--------------------------------------------------------------" << std::endl;
-      pcout << "Space norms: " <<std::endl;
-      pcout << std::endl;
-      pcout << std::setprecision(8) << std::scientific;
-      pcout << std::setw(25) << std::left << "||err_v_f(T)||:"
-            << std::setw(20) << v_f_T_err    << "\n"
-            << std::setw(25) << std::left << "||err_v_s(T)||:"
-            << std::setw(20) << v_s_T_err    << "\n"
-            << std::setw(25) << std::left << "||grad err_u(T)||:"
-            << std::setw(20) << grad_u_T_err << "\n";
-      pcout << std::endl;
-      pcout << "Space time norms: " << std::endl;
-      pcout << std::endl;
-      pcout << std::setw(25) << std::left << "||grad err_v_f||_I,O:"
-            << std::setw(20) << sum_grad_v_f_err << "\n"
-            << std::setw(25) << std::left << "||grad err_p||_I,O:"
-            << std::setw(20) << sum_grad_p_err   << "\n";
-      pcout << "--------------------------------------------------------------" << std::endl;
-
-      // Add the computed values to the (convergence-) tables
-      {
-        {
-          convergence_table.add_value("Cycle", cycle);
-          convergence_table.add_value("h", h);
-          convergence_table.add_value("k", k);
-          convergence_table.add_value("||err_v_f(T)||", v_f_T_err);
-          convergence_table.add_value("||err_v_s(T)||", v_s_T_err);
-          convergence_table.add_value("||grad err_u(T)||", grad_u_T_err);
-          convergence_table.add_value("||grad err_v_f||_I,O", sum_grad_v_f_err);
-          convergence_table.add_value("||grad err_p||_I,O", sum_grad_p_err);
-
-          convergence_table.set_precision("||err_v_f(T)||", 8);
-          convergence_table.set_precision("||err_v_s(T)||", 8);
-          convergence_table.set_precision("||grad err_u(T)||", 8);
-          convergence_table.set_precision("||grad err_v_f||_I,O", 8);
-          convergence_table.set_precision("||grad err_p||_I,O", 8);
-
-          convergence_table.set_scientific("||err_v_f(T)||", true);
-          convergence_table.set_scientific("||err_v_s(T)||", true);
-          convergence_table.set_scientific("||grad err_u(T)||", true);
-          convergence_table.set_scientific("||grad err_v_f||_I,O", true);
-          convergence_table.set_scientific("||grad err_p||_I,O", true);
-        }
-
-        {
-          table.add_value("Cycle", cycle);
-          table.add_value("h", h);
-          table.add_value("k", k);
-          table.add_value("||v_f(T)||", v_f_T_sol);
-          table.add_value("||v_s(T)||", v_s_T_sol);
-          table.add_value("||grad u(T)||", grad_u_T_sol);
-          table.add_value("||grad v_f||_I,O", sum_grad_v_f_sol);
-          table.add_value("||grad p||_I,O", sum_grad_p_sol);
-
-          table.set_precision("||v_f(T)||", 8);
-          table.set_precision("||v_s(T)||", 8);
-          table.set_precision("||grad u(T)||", 8);
-          table.set_precision("||grad v_f||_I,O", 8);
-          table.set_precision("||grad p||_I,O", 8);
-
-          table.set_scientific("||v_f(T)||", true);
-          table.set_scientific("||v_s(T)||", true);
-          table.set_scientific("||grad u(T)||", true);
-          table.set_scientific("||grad v_f||_I,O", true);
-          table.set_scientific("||grad p||_I,O", true);
-        }
-
-        // Add the norms of the reference solution to the table in the last cycle
-        if (cycle == n_refinement_cycles - 1)
-          {
-            if (do_spatial_analysis)
-              h *= 0.5;
-            if (do_temporal_analysis)
-              k *= 0.5;
-
-            table.add_value("Cycle", n_refinement_cycles);
-            table.add_value("h", h);
-            table.add_value("k", k);
-            table.add_value("||v_f(T)||", v_f_T_ref);
-            table.add_value("||v_s(T)||", v_s_T_ref);
-            table.add_value("||grad u(T)||", grad_u_T_ref);
-            table.add_value("||grad v_f||_I,O", sum_grad_v_f_ref);
-            table.add_value("||grad p||_I,O", sum_grad_p_ref);
-
-            table.set_precision("||v_f(T)||", 8);
-            table.set_precision("||v_s(T)||", 8);
-            table.set_precision("||grad u(T)||", 8);
-            table.set_precision("||grad v_f||_I,O", 8);
-            table.set_precision("||grad p||_I,O", 8);
-
-            table.set_scientific("||v_f(T)||", true);
-            table.set_scientific("||v_s(T)||", true);
-            table.set_scientific("||grad u(T)||", true);
-            table.set_scientific("||grad v_f||_I,O", true);
-            table.set_scientific("||grad p||_I,O", true);
-          }
-
-        pcout << std::endl;
-        pcout << "Solution norms: " << std::endl;
-        pcout << std::endl;
-        if (this_mpi_process == 0)
-          table.write_text(std::cout);
-        pcout << std::endl;
-
-        if (n_refinement_cycles > 0)
-          {
-            convergence_table.evaluate_convergence_rates("||err_v_f(T)||",
-                                                         ConvergenceTable::reduction_rate_log2);
-            convergence_table.evaluate_convergence_rates("||err_v_s(T)||",
-                                                         ConvergenceTable::reduction_rate_log2);
-            convergence_table.evaluate_convergence_rates("||grad err_u(T)||",
-                                                         ConvergenceTable::reduction_rate_log2);
-            convergence_table.evaluate_convergence_rates("||grad err_v_f||_I,O",
-                                                         ConvergenceTable::reduction_rate_log2);
-            convergence_table.evaluate_convergence_rates("||grad err_p||_I,O",
-                                                         ConvergenceTable::reduction_rate_log2);
-            pcout << std::endl;
-            pcout << "Convergence rates using reference solution: " << std::endl;
-            pcout << std::endl;
-            if (this_mpi_process == 0)
-              convergence_table.write_text(std::cout);
-            pcout << std::endl;
-          }
-      }
-
-      // Prepare for the next cycle
-      time = 0.0;
-      timestep_no = 0;
-
-      if (do_spatial_analysis)
-        {
-          triangulation.refine_global(1);
-          h *= 0.5;
-        }
-      if (do_temporal_analysis)
-        {
-          k *= 0.5;
-          timestep_no_offset *= 0.5;
-        }
-      pcout.get_stream().flags(f);
-    }
-
-  // Print solution norms if no convergence analysis is done
-  if (n_refinement_cycles == 0)
-    {
-      table.add_value("h", h);
-      table.add_value("k", k);
-      table.add_value("||v_f(T)||", v_f_T_ref);
-      table.add_value("||v_s(T)||", v_s_T_ref);
-      table.add_value("||grad u(T)||", grad_u_T_ref);
-      table.add_value("||grad v_f||_I,O", sum_grad_v_f_ref);
-      table.add_value("||grad p||_I,O", sum_grad_p_ref);
-
-      table.set_precision("||v_f(T)||", 8);
-      table.set_precision("||v_s(T)||", 8);
-      table.set_precision("||grad u(T)||", 8);
-      table.set_precision("||grad v_f||_I,O", 8);
-      table.set_precision("||grad p||_I,O", 8);
-
-      table.set_scientific("||v_f(T)||", true);
-      table.set_scientific("||v_s(T)||", true);
-      table.set_scientific("||grad u(T)||", true);
-      table.set_scientific("||grad v_f||_I,O", true);
-      table.set_scientific("||grad p||_I,O", true);
-
       pcout << "Solution norms: " << std::endl;
       pcout << std::endl;
       if (this_mpi_process == 0)

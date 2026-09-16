@@ -9,7 +9,10 @@ subsection Global parameters
     # the reference solution is computed on 
     # refinement level n_refinements + n_refinement_cylces
     # at the start of the program
+    # set to 0 if no convergence analysis is to be conducted
     set n_refinement_cycles = 0
+    # select whether to analyse convergence in space and/or time
+    # has no effect if n_refinement_cycles = 0
     set do_spatial_analysis = false
     set do_temporal_analysis = false
     set output_skip = 1
