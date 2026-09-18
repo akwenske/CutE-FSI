@@ -28,7 +28,7 @@ $ cmake -DDEAL_II_DIR=<path-to-deal-ii> -DCMAKE_BUILD_TYPE=Release ..
 $ make -j <N> && mpirun -np <N> ./cute-fsi
 ```
 The parameter file cute-fsi.prm is included hard-coded in the main.cc. 
-We have added [reference_terminal_log_file.txt](reference_terminal_log_file.txt) to which this run and its terminal output can be compared with.
+We have added [reference_terminal_log_file.txt](reference_terminal_log_file.txt) to which this run and its terminal output can be compared with. This shows the correctness of your compilation and run with regard to the release version of the code.
 
 ## Documentation
 
