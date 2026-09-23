@@ -9,9 +9,9 @@
  *
  * Authors: Stefan Frei, University of Konstanz, 2026
  *          Tobias Knoke, Leibniz University Hannover, 2026
- *          Marc Steinbach, Leibniz University Hannover, 2026
+ *          Marc C. Steinbach, Leibniz University Hannover, 2026
  *          Anne-Kathrin Wenske, Leibniz University Hannover, 2026
- *          Thomas Wick, Leibniz University hannover, 2026
+ *          Thomas Wick, Leibniz University Hannover, 2026
  *
  * Contributers: Marc Fehling, Charles University, Prague, 2026
  *
@@ -30,11 +30,11 @@ using namespace dealii;
 
 namespace GhostPenalty
 {
-  /** The Component enum
-     *
-     * Identifies the physical component for which
-     * the ghost penalty will be computed.
-     */
+  /** Component selector.
+   *
+   * Identifies the physical component for which
+   * the ghost penalty will be computed.
+   */
   enum Component {
     v_f,
     p,
@@ -42,17 +42,17 @@ namespace GhostPenalty
     u
   };
 
-  /** Computes the ghost penalty.
-     *
-     * @param component Component for which the ghost penalty will be computed
-     * @param gp_prm Ghost penalty paramater gamma
-     * @param weight Weight \f$\omega(\kappa)\f$ of the current cell
-     * @param h cell size
-     * @param jumps_i Vector of jumps of normal derivatives of
-     *        test functions in ascending order
-     * @param jumps_j Vector of jumps of normal derivates of
-     *        ansatz functions in ascending order
-     */
+  /** Compute ghost penalty.
+   *
+   * @param component Component for which the ghost penalty will be computed.
+   * @param gp_prm Ghost penalty paramater gamma.
+   * @param weight Weight \f$\omega(\kappa)\f$ of the current cell.
+   * @param h cell size.
+   * @param jumps_i Vector of jumps of normal derivatives of
+   *        test functions in ascending order.
+   * @param jumps_j Vector of jumps of normal derivates of
+   *        ansatz functions in ascending order.
+   */
   template <typename T>
   double get_gp(GhostPenalty::Component component,
                 double gp_prm,
@@ -64,7 +64,7 @@ namespace GhostPenalty
     AssertDimension(jumps_i.size(), jumps_j.size());
 
     // Precompute the set of coefficients of the jump terms
-    // depending on the solution variable
+    // depending on the solution component.
     std::vector<double> coefficients;
     double ghost_penalty = 0.0;
 
@@ -97,12 +97,13 @@ namespace GhostPenalty
 } // end namespace GhostPenalty
 
 /**
-  * Standard constructor that initializes all the DofHandlers, triangulations,
-  * FECollections etc. By default, the degree for the level set function is set to 2.
-  * For the fluid, only quadratic elements are implemented, while for the solid
-  * linear and quadratic elements are possible.
-  * @param input_file the parameter file cute-fsi.prm.
-  */
+ * Standard constructor.
+ *
+ * Initializes all the DofHandlers, triangulations, FECollections etc. 
+ * By default, the degree for the level set function is set to 2.
+ * For the fluid, only quadratic elements are implemented, while for the solid
+ * linear and quadratic elements are possible.
+ */
 template <int dim>
 Stokes::StokesFSI<dim>::StokesFSI(const unsigned int m_f,
                                   const unsigned int m_s,
@@ -154,13 +155,13 @@ Stokes::StokesFSI<dim>::StokesFSI(const unsigned int m_f,
 }
 
 /** Set physical and computational parameters.
-   *
-   * The parameters are given in the file cute-fsi.prm.
-   */
+ *
+ * The parameters are given in the file cute-fsi.prm.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::set_runtime_parameters()
 {
-  //Global parameters
+  // Global parameters.
   n_refinements                = parameters.n_refinements;
   n_refinement_cycles          = parameters.n_refinement_cycles;
   do_spatial_analysis          = parameters.do_spatial_analysis;
@@ -168,21 +169,21 @@ void Stokes::StokesFSI<dim>::set_runtime_parameters()
   output_skip                  = parameters.output_skip;
   interface_type               = parameters.interface_type;
 
-  //Fluid parameters
+  // Fluid parameters.
   v_f_in                       = parameters.v_f_in;
   nu_f                         = parameters.nu_f;
   rho_f                        = parameters.rho_f;
 
-  //Solid parameters
+  // Solid parameters.
   rho_s                        = parameters.rho_s;
   mu                           = parameters.mu;
   lambda                       = parameters.lambda;
 
-  //Timestepping parameters
+  // Timestepping parameters.
   end_time                     = parameters.end_time;
   k                            = parameters.timestep_size;
 
-  //Ghost penalty and Nitsche parameters
+  // Ghost penalty and Nitsche parameters.
   ghost_prm_v_f                = parameters.ghost_prm_v_f;
   ghost_prm_v_s                = parameters.ghost_prm_v_s;
   ghost_prm_p                  = parameters.ghost_prm_p;
@@ -191,9 +192,10 @@ void Stokes::StokesFSI<dim>::set_runtime_parameters()
   nitsche_parameter            = parameters.nitsche_parameter;
 }
 
-/** Set up the background mesh.
-   *  The mesh is a square domain with side length 2.
-  */
+/** Set up background mesh.
+ *
+ *  The mesh is a square domain with side length 2.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::make_grid()
 {
@@ -215,10 +217,13 @@ void Stokes::StokesFSI<dim>::make_grid()
                                        triangulation);
 }
 
-/** Setup the discrete level set. The level set function is given from the fluid
-   * point of view. Depending on the given level_set_dof_handler and level_set_fluid,
-   * the level set function is set up either for the current or for the reference solution.
-   */
+/** Set up discrete level set. 
+ *
+ * The level set function is given from the fluid point of view. 
+ * Depending on the given level_set_dof_handler and level_set_fluid,
+ * the level set function is set up either for the current solution
+ * or for the reference solution.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::setup_discrete_level_sets(
     DoFHandler<dim> & level_set_dof_handler,
@@ -251,10 +256,11 @@ void Stokes::StokesFSI<dim>::setup_discrete_level_sets(
   level_set_fluid = competely_distributed_level_set_fluid;
 }
 
-/** Distributes the dofs for the current or reference solution.
-   * The location of each cell is determined by the given mesh_classifier_fluid object
-   * to either fluid, solid or (cut) interface cells.
-   */
+/** Distribute dofs for current or reference solution.
+ *
+ * The location of each cell is determined by the given mesh_classifier_fluid
+ * object to either fluid, solid or (cut) interface cells.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::distribute_dofs(
     DoFHandler<dim> & dof_handler,
@@ -282,7 +288,8 @@ void Stokes::StokesFSI<dim>::distribute_dofs(
   pcout << "Number of dofs: " << dof_handler.n_dofs() << std::endl;
 }
 
-/** Initialize the system matrix, rhs- and solution vectors as usual. */
+/** Initialize system matrix, rhs and solution vectors as usual. 
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::initialize_matrices()
 {
@@ -301,7 +308,7 @@ void Stokes::StokesFSI<dim>::initialize_matrices()
   Table<2, DoFTools::Coupling> cell_coupling(n_components, n_components);
   Table<2, DoFTools::Coupling> face_coupling(n_components, n_components);
 
-  // determine the face and cell coupling of the discrete form
+  // Determine the face and cell coupling of the discrete form.
   for (unsigned int i = 0; i < n_components; i++)
     for (unsigned int j = 0; j < n_components; j++)
       {
@@ -363,12 +370,12 @@ void Stokes::StokesFSI<dim>::initialize_matrices()
   rhs.reinit(locally_owned_dofs, mpi_communicator);
 }
 
-/** Decides whether a given face lies in the set \f$\mathcal{F}_G^i\f$ for \f$ i\in\{f,s\}\f$.
-   * @param cell The current cell on which the face lies.
-   * @param face_index The index of the face on the current cell.
-   * @param subdomain The subdomain (either fluid or solid) for which the necessity
-   *  of penalization should be checked.
-   */
+/** Decide whether given face lies in \f$\mathcal{F}_G^i\f$ for \f$i\in\{f,s\}\f$.
+ * @param cell Current cell on which the face lies.
+ * @param face_index Index of the face on the current cell.
+ * @param subdomain Subdomain (either fluid or solid) 
+ *  for which the necessity of penalization should be checked.
+ */
 template <int dim>
 bool Stokes::StokesFSI<dim>::face_has_ghost_penalty(
     const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -403,7 +410,7 @@ bool Stokes::StokesFSI<dim>::face_has_ghost_penalty(
   return false;
 }
 
-/** Assemble the system matrix and right hand side vector. */
+/** Assemble system matrix and right hand side vector. */
 template <int dim>
 void Stokes::StokesFSI<dim>::assemble_system()
 {
@@ -417,7 +424,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
   const RightHandSideFluid<dim> rhs_function_fluid;
   const RightHandSideSolid<dim> rhs_function_solid;
 
-  // Assemble the ghost penalty terms via an FEInterfaceValues object
+  // Assemble the ghost penalty terms via an FEInterfaceValues object.
   const QGauss<dim - 1> face_quadrature(quadrature_degree);
   const hp::QCollection<dim - 1> quadrature_collection(face_quadrature);
 
@@ -429,9 +436,8 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                              update_normal_vectors);
 
   // Assemble the bulk and interface terms via a NonMatching object
-  // that is given from the fluid point of view. Hence, "inside" refers
-  // to fluid terms, "outside" to solid terms and "surface" to
-  // interface terms.
+  // that is given from the fluid point of view. Hence, "inside" refers to
+  // fluid terms, "outside" to solid terms and "surface" to interface terms.
   const QGauss<1> quadrature_1D(quadrature_degree);
 
   NonMatching::RegionUpdateFlags region_update_flags;
@@ -500,7 +506,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
             &surface_fe_values_fluid =
             non_matching_fe_values_fluid.get_surface_fe_values();
 
-        // fluid bulk terms
+        // Fluid bulk terms.
         if (inside_fe_values_fluid)
           {
             std::vector<Vector<double>>
@@ -526,7 +532,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                 for (const unsigned int i : inside_fe_values_fluid->dof_indices())
                   {
-                    // fluid test functions
+                    // Fluid test functions.
                     Tensor<1,dim> v_f_i;
                     Tensor<2,dim> grad_v_f_i;
 
@@ -544,7 +550,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                     for (const unsigned int j : inside_fe_values_fluid->dof_indices())
                       {
-                        // fluid ansatz functions
+                        // Fluid ansatz functions.
                         Tensor<1,dim> v_f_j;
                         Tensor<2,dim> grad_v_f_j;
 
@@ -592,7 +598,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
         bool cell_contains_solid = false;
 #endif
 
-        // solid bulk terms
+        // Solid bulk terms.
         if (inside_fe_values_solid)
           {
 #if defined(DEAL_II_LESS_9_8_0)
@@ -625,7 +631,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                 for (const unsigned int i : inside_fe_values_solid->dof_indices())
                   {
-                    // solid test functions
+                    // Solid test functions.
                     Tensor<1,dim> v_s_i;
                     Tensor<2,dim> grad_v_s_i;
                     Tensor<1,dim> u_i;
@@ -643,7 +649,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                     for (const unsigned int j : inside_fe_values_solid->dof_indices())
                       {
-                        // solid ansatz functions
+                        // Solid ansatz functions.
                         Tensor<1,dim> v_s_j;
                         Tensor<1,dim> u_j;
                         Tensor<2,dim> grad_u_j;
@@ -675,7 +681,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
               }
           }
 
-        // interface terms
+        // Interface terms.
         if (surface_fe_values_fluid)
           {
             for (unsigned int q = 0;
@@ -686,7 +692,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
 
                 for (const unsigned int i : surface_fe_values_fluid->dof_indices())
                   {
-                    // test functions
+                    // Test functions.
                     Tensor<1,dim> v_f_i;
                     Tensor<2,dim> grad_v_f_i;
                     Tensor<1,dim> v_s_i;
@@ -709,7 +715,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                     for (const unsigned int j :
                          surface_fe_values_fluid->dof_indices())
                       {
-                        // ansatz functions
+                        // Ansatz functions.
                         Tensor<1,dim> v_f_j;
                         Tensor<2,dim> grad_v_f_j;
                         Tensor<1,dim> v_s_j;
@@ -749,7 +755,8 @@ void Stokes::StokesFSI<dim>::assemble_system()
                                                system_matrix, rhs);
 
         // Assembly of the ghost penalty terms:
-        // First, compute the relatve weight function for the fluid and solid parts.
+        // First, compute the relatve weight function
+	// for the fluid and solid parts.
         double cut_cell_measure_fluid = 0.0;
 
         if (inside_fe_values_fluid)
@@ -832,7 +839,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                         jumps_v_s_grad_i =
                             fe_interface_values[velocity_solid].jump_in_gradients(i, q) * normal;
 
-                        // jumps in test functions to be used in get_gp
+                        // Jumps in test functions to be used in get_gp.
                         std::vector<Tensor<1,dim>> jumps_v_f_i {jumps_v_f_grad_i, jumps_v_f_hess_i};
                         std::vector<double>        jumps_p_i   {jumps_p_grad_i};
                         std::vector<Tensor<1,dim>> jumps_v_s_i {jumps_v_s_grad_i};
@@ -872,7 +879,7 @@ void Stokes::StokesFSI<dim>::assemble_system()
                             jumps_u_grad_j =
                                 fe_interface_values[displacement].jump_in_gradients(j, q) * normal;
 
-                            // jumps in ansatz functions to be used in get_gp
+                            // Jumps in ansatz functions to be used in get_gp.
                             std::vector<Tensor<1,dim>> jumps_v_f_j {jumps_v_f_grad_j, jumps_v_f_hess_j};
                             std::vector<double>        jumps_p_j   {jumps_p_grad_j};
                             std::vector<Tensor<1,dim>> jumps_v_s_j {jumps_v_s_grad_j};
@@ -976,10 +983,12 @@ void Stokes::StokesFSI<dim>::assemble_system()
   rhs.compress(VectorOperation::add);
 }
 
-/** Setting the boundary conditions as usual. Depending on the refinement level,
-      the computational solid domain may also intersect the outer domain boundary
-      in case of the spherical interface. Hence, we also apply zero boundary conditions
-      to the solid components.*/
+/** Set boundary conditions as usual. 
+ *
+ * Depending on the refinement level, the computational solid domain may also
+ * intersect the outer domain boundary in case of the spherical interface. 
+ * Hence, we also apply zero boundary conditions to the solid components.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::set_bc()
 {
@@ -1010,7 +1019,8 @@ void Stokes::StokesFSI<dim>::set_bc()
   constraints.close();
 }
 
-/** Solve the linear system of equations via the sparse direct solver MUMPS. */
+/** Solve linear equation system via sparse direct solver MUMPS.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::solve_linear_system()
 {
@@ -1031,7 +1041,8 @@ void Stokes::StokesFSI<dim>::solve_linear_system()
   solution = completely_distributed_solution;
 }
 
-/** Solve the fsi problem for a given timestep*/
+/** Solve FSI problem for given timestep.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::solve_timestep()
 {
@@ -1055,8 +1066,10 @@ void Stokes::StokesFSI<dim>::solve_timestep()
   solve_linear_system();
 }
 
-/** Write the initial timestep solution to vtk.
- * In case of convergence analysis, also write the initial error.*/
+/** Write initial timestep solution to vtk.
+ *
+ * In case of convergence analysis, also write the initial error.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::output_initial_timestep(const unsigned int cycle)
 {
@@ -1077,8 +1090,8 @@ void Stokes::StokesFSI<dim>::output_initial_timestep(const unsigned int cycle)
 
   if (n_refinement_cycles > 0)
     {
-      // The initial value of each solution is the zero vector, hence the initial
-      // error is always zero as well.
+      // The initial value of each solution is the zero vector,
+      // hence the initial error is always zero as well.
       const IndexSet locally_owned_ref_dofs =
           ref_solution.locally_owned_elements();
       const IndexSet locally_relevant_ref_dofs =
@@ -1093,10 +1106,14 @@ void Stokes::StokesFSI<dim>::output_initial_timestep(const unsigned int cycle)
     }
 }
 
-/** Write solution quantities to vtu. The solution values and the derived gradients given by
-   * \ref Postprocessor as well as the level set function and the partition in case of parallel
-   * computations will be written to vtu. This method can output these quantities both for
-   * the current solution, as well as for the error, as indicated by the solution_type.*/
+/** Write solution quantities to vtu. 
+ *
+ * The solution values and the derived gradients given by \ref Postprocessor 
+ * as well as the level set function and the partition in case of parallel
+ * computations will be written to vtu. 
+ * This method can output these quantities both for the current solution and
+ * for the error, as indicated by the solution_type.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::output_results(const unsigned int cycle,
                                             const unsigned int timestep_no,
@@ -1171,12 +1188,13 @@ void Stokes::StokesFSI<dim>::output_results(const unsigned int cycle,
                                  mpi_communicator);
 }
 
-/** Computes the spatial L2-norms of the error analysis on the physical domains.
-   * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
-   * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
-   * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
-   * @param solution_type Compute these norms for the current solution or the error.
-  */
+/** Compute spatial L2-norms of solutions or errors on physical domains.
+ *
+ * @param v_f \f$\|v_f(T)\|_{\Omega_f}^2\f$.
+ * @param v_s \f$\|v_s(T)\|_{\Omega_s}^2\f$.
+ * @param grad_u \f$\|\nabla u(T)\|_{\Omega_s}^2\f$.
+ * @param solution_type Select current solution or error.
+ */
 template<int dim>
 void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
                                            double &v_s,
@@ -1317,11 +1335,12 @@ void Stokes::StokesFSI<dim>::L2_space_norm(double &v_f,
   grad_u = std::sqrt(grad_u);
 }
 
-/** Computes the square of the temporal L2-norms of the error analysis on the physical domains.
-   * @param sum_grad_v_f \f$ \sum_{n=1}^N k   ||\nabla v_f(t_n)||_{\Omega_f}^2 \f$.
-   * @param sum_grad_p \f$ \sum_{n=1}^N k h^2 ||\nabla p(t_n)||_{\Omega_f}^2 \f$.
-   * @param solution_type Compute these normt for the current solution or the error.
-  */
+/** Compute squared temporal L2-norms of solutions or errors on physical domains.
+ *
+ * @param sum_grad_v_f \f$\sum_{n=1}^N k   \|\nabla v_f(t_n)\|_{\Omega_f}^2\f$.
+ * @param sum_grad_p \f$\sum_{n=1}^N k h^2 \|\nabla   p(t_n)\|_{\Omega_f}^2\f$.
+ * @param solution_type Select current solution or error.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::L2_space_time_norm(double & sum_grad_v_f,
                                                 double & sum_grad_p,
@@ -1379,7 +1398,7 @@ void Stokes::StokesFSI<dim>::L2_space_time_norm(double & sum_grad_v_f,
   solution_ptr->update_ghost_values();
 
   // The pressure norm is scaled with respect to the mesh size h_current
-  // of the current solution
+  // of the current solution.
   for (const auto &cell : triangulation.active_cell_iterators())
     {
       if (cell->is_locally_owned())
@@ -1435,7 +1454,8 @@ void Stokes::StokesFSI<dim>::L2_space_time_norm(double & sum_grad_v_f,
   sum_grad_p   += Utilities::MPI::sum(local_grad_p, mpi_communicator);
 }
 
-/** Reads in the reference solution in filename.*/
+/** Read reference solution from file.
+ */
 template<int dim>
 void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
                                               PETScWrappers::MPI::Vector & ref_solution)
@@ -1450,22 +1470,23 @@ void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
   std::vector<unsigned int> indices;
   unsigned int start_index;
 
-  // Each process saves its part of the reference solution in a
-  // seperate file, which can be distinguished by filename and also its header.
-  // The header contains information about the writing process as well as the range
-  // of indices of the reference solution vector that are stored in the given file.
-  // Thus, to read in the vector values, one has to also find the index range.
+  // Each process saves its part of the reference solution in a seperate file,
+  // which can be distinguished by filename and also by its header.
+  // The header contains information about the writing process
+  // as well as the range of indices of the reference solution vector
+  // that are stored in the given file.
+  // Thus, to read the vector values, one also needs to find the index range.
 
-  // Find the end of the header
+  // Find the end of the header.
   pos1 = solution_line.find(" ");
   pos2 = solution_line.find("-");
-  // Save the start index of the index range
+  // Save the start index of the index range.
   start_index = atof((solution_line.substr(pos1, pos2)).c_str());
 
   pos1 = solution_line.find("]");
   solution_line = solution_line.substr(pos1 + 1);
 
-  // Read in the actual values of the solution
+  // Read the actual solution values.
   while ((pos1 = solution_line.find(" ")) >= 0)
     {
       solution_line = solution_line.substr(pos1 + 1);
@@ -1476,7 +1497,7 @@ void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
           values.push_back(entry);
         }
     }
-  // Save the index range
+  // Save the index range.
   for (unsigned int i = 0; i < values.size(); i++)
     indices.push_back(start_index + i);
 
@@ -1484,15 +1505,17 @@ void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
   PETScWrappers::MPI::Vector completely_distributed_ref_solution (locally_owned_ref_dofs,
                                                                   mpi_communicator);
 
-  // Write the read in values into the given index range
+  // Write the read values into the given index range.
   completely_distributed_ref_solution.add(indices, values);
   completely_distributed_ref_solution.compress(VectorOperation::add);
 
   ref_solution = completely_distributed_ref_solution;
 }
 
-/** Saves the reference solution to file.
- * In parallel, each process writes its own file.*/
+/** Save reference solution to file.
+ *
+ * In parallel operation, each process writes its own file.
+ */
 template<int dim>
 void Stokes::StokesFSI<dim>::save_reference_solution()
 {
@@ -1513,9 +1536,10 @@ void Stokes::StokesFSI<dim>::save_reference_solution()
 }
 
 
-/** Compute the error between the current and the saved reference solution.
- * @param timestep_no_offset offset between coarse and reference time mesh
-*/
+/** Compute error between current solution and saved reference solution.
+ *
+ * @param timestep_no_offset Offset between coarse and reference time mesh.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::compute_error(double timestep_no_offset)
 {
@@ -1564,13 +1588,14 @@ void Stokes::StokesFSI<dim>::compute_error(double timestep_no_offset)
   err = coarse_solution_on_fine_grid;
 }
 
-/** Writes the computed norms to the given convergence table.
-   * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
-   * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
-   * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
-   * @param sum_grad_v_f \f$ \sum_{n=1}^N k   ||\nabla v_f(t_n)||_{\Omega_f}^2 \f$.
-   * @param sum_grad_p \f$ \sum_{n=1}^N k h^2 ||\nabla p(t_n)||_{\Omega_f}^2 \f$.
-*/
+/** Write computed norms to convergence table.
+ *
+ * @param v_f \f$\|v_f(T)\|_{\Omega_f}^2\f$.
+ * @param v_s \f$\|v_s(T)\|_{\Omega_s}^2\f$.
+ * @param grad_u \f$\|\nabla u(T)\|_{\Omega_s}^2\f$.
+ * @param sum_grad_v_f \f$\sum_{n=1}^N k   \|\nabla v_f(t_n)\|_{\Omega_f}^2\f$.
+ * @param sum_grad_p \f$\sum_{n=1}^N k h^2 \|\nabla   p(t_n)\|_{\Omega_f}^2\f$.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::write_norms_to_table(double v_f_T,
                                                   double v_s_T,
@@ -1626,18 +1651,19 @@ void Stokes::StokesFSI<dim>::write_norms_to_table(double v_f_T,
     }
 }
 
-/** Compute the reference solution on the finest mesh.
-   *
-   * The refinement level of the finest mesh corresponds to
-   * n_refinements + n_refinement_cycles. Save the reference solution for each
-   * timestep, compute the reference norms v_f,...,sum_grad_p and initialize the
-   * reference DoFHandlers, level set function, triangulation and mesh classifier.
-   * @param v_f \f$ ||v_f(T)||_{\Omega_f}^2 \f$.
-   * @param v_s \f$ ||v_s(T)||_{\Omega_s}^2 \f$.
-   * @param grad_u \f$ ||\nabla u(T)||_{\Omega_s}^2 \f$.
-   * @param sum_grad_v_f \f$ \sum_{n=1}^N k   ||\nabla v_f(t_n)||_{\Omega_f}^2 \f$.
-   * @param sum_grad_p \f$ \sum_{n=1}^N k h^2 ||\nabla p(t_n)||_{\Omega_f}^2 \f$.
-   */
+/** Compute reference solution on finest mesh.
+ *
+ * The refinement level of the finest mesh corresponds to
+ * n_refinements + n_refinement_cycles. Save the reference solution for each
+ * timestep, compute the reference norms v_f,...,sum_grad_p and initialize the
+ * reference DoFHandlers, level set function, triangulation and mesh classifier.
+ *
+ * @param v_f \f$\|v_f(T)\|_{\Omega_f}^2\f$.
+ * @param v_s \f$\|v_s(T)\|_{\Omega_s}^2\f$.
+ * @param grad_u \f$\|\nabla u(T)\|_{\Omega_s}^2\f$.
+ * @param sum_grad_v_f \f$\sum_{n=1}^N k   \|\nabla v_f(t_n)\|_{\Omega_f}^2\f$.
+ * @param sum_grad_p \f$\sum_{n=1}^N k h^2 \|\nabla   p(t_n)\|_{\Omega_f}^2\f$.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
                                                         double & v_s_T,
@@ -1652,7 +1678,8 @@ void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
         << "====================================="
         << std::endl;
 
-  // setup the mesh, mesh size and timestep size for the reference refinement level
+  // Set up the mesh, mesh size and timestep size
+  // for the reference refinement level
   if (do_spatial_analysis)
     triangulation.refine_global(n_refinement_cycles);
   if (do_temporal_analysis)
@@ -1665,8 +1692,8 @@ void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
   distribute_dofs(dof_handler, mesh_classifier_fluid);
   initialize_matrices();
 
-  // to compute the errors later on the refinement level of the reference solution,
-  // corresponding DofHandlers need to be initialized.
+  // To compute the errors later on the refinement level of the reference
+  // solution, corresponding DofHandlers need to be initialized.
   pcout << "Setting up reference dof handler." << std::endl;
 
   ref_triangulation.copy_triangulation(triangulation);
@@ -1712,7 +1739,7 @@ void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
   sum_grad_v_f = std::sqrt(sum_grad_v_f);
   sum_grad_p   = std::sqrt(sum_grad_p);
 
-  // reset the mesh, mesh size and timestep size for the coarse solutions
+  // Reset the mesh, mesh size and timestep size for the coarse solutions.
   pcout << "Reinit time variables and triangulation." << std::endl;
 
   time = 0.0;
@@ -1732,7 +1759,9 @@ void Stokes::StokesFSI<dim>::compute_reference_solution(double & v_f_T,
         << std::endl;
 }
 
-/** Conduct a convergence analysis in time and/or space for n_refinement_cycles cycles. */
+/** Conduct convergence analysis in time and/or space
+ * for n_refinement_cycles cycles.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::do_convergence_analysis()
 {
@@ -1740,26 +1769,26 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
   ConvergenceTable   table; // norms of current solution
 
   // Variables to be stored the space-time-l2 norms:
-  // error:
+  // Error:
   double sum_grad_v_f_err;
   double sum_grad_p_err;
-  // current solution:
+  // Current solution:
   double sum_grad_v_f_sol;
   double sum_grad_p_sol;
-  // reference solution:
+  // Reference solution:
   double sum_grad_v_f_ref;
   double sum_grad_p_ref;
 
   // Variables to be stored the space-l2 norms at the end time:
-  // error:
+  // Error:
   double v_f_T_err;
   double v_s_T_err;
   double grad_u_T_err;
-  // current solution:
+  // Current solution:
   double v_f_T_sol;
   double v_s_T_sol;
   double grad_u_T_sol;
-  // reference solution:
+  // Reference solution:
   double v_f_T_ref;
   double v_s_T_ref;
   double grad_u_T_ref;
@@ -1829,7 +1858,7 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
       sum_grad_v_f_sol = std::sqrt(sum_grad_v_f_sol);
       sum_grad_p_sol   = std::sqrt(sum_grad_p_sol);
 
-      // Add the computed values to the (convergence-) tables
+      // Add the computed values to the (convergence-) tables.
       convergence_table.add_value("Cycle", cycle);
       write_norms_to_table(v_f_T_err,
                            v_s_T_err,
@@ -1848,7 +1877,7 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
                            table,
                            SolutionType::current_solution);
 
-      // Add the norms of the reference solution to the table in the last cycle
+      // Add the norms of the reference solution to the table in the last cycle.
       if (cycle == n_refinement_cycles - 1)
         {
           if (do_spatial_analysis)
@@ -1880,7 +1909,7 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
         pcout << std::endl;
       }
 
-      // Prepare for the next cycle
+      // Prepare for the next cycle.
       time = 0.0;
       timestep_no = 0;
 
@@ -1897,18 +1926,19 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
     }
 }
 
-/** Start the computation of the FSI problem.
-   *
-   * If n_refinement_cycles > 0 includes a convergence
-   * study in space and/or time, depending on do_spatial_analysis and do_temporal_analysis.
-   * In case of a spatial analysis, the mesh refinement level for the reference solution
-   * corresponds to n_refinements + n_refinement_cycles.
-   * If n_refinement_cycles is set to 0, no convergence analysis will be conducted
-   * but the solution for a single run will still be computed.
-   * For each computation, both the space time and space norms for
-   * the current solution will be printed in a table. In case of a convergence analysis,
-   * the errors will too be printed in a table including the estimated convergence orders.
-   */
+/** Solve FSI problem.
+ *
+ * If n_refinement_cycles > 0, conduct a convergence study in space and/or time,
+ * depending on do_spatial_analysis and do_temporal_analysis.
+ * In case of a spatial analysis, the mesh refinement level for the
+ * reference solution corresponds to n_refinements + n_refinement_cycles.
+ * If n_refinement_cycles is set to 0, no convergence analysis will be conducted
+ * but the solution for a single run will still be computed.
+ * For each computation, both the space time and space norms for the current
+ * solution will be printed in a table. In case of a convergence analysis,
+ * the errors will too be printed in a table including the estimated
+ * convergence orders.
+ */
 template <int dim>
 void Stokes::StokesFSI<dim>::run()
 {
@@ -1957,15 +1987,15 @@ void Stokes::StokesFSI<dim>::run()
     }
   else
     {
-      ConvergenceTable table; // norms of current solution
+      ConvergenceTable table; // Norms of current solution.
 
       // Variables to be stored the space-time-l2 norms:
-      // current solution:
+      // Current solution:
       double sum_grad_v_f_sol;
       double sum_grad_p_sol;
 
       // Variables to be stored the space-l2 norms at the end time:
-      // current solution:
+      // Current solution:
       double v_f_T_sol;
       double v_s_T_sol;
       double grad_u_T_sol;
@@ -1998,7 +2028,7 @@ void Stokes::StokesFSI<dim>::run()
       sum_grad_v_f_sol = std::sqrt(sum_grad_v_f_sol);
       sum_grad_p_sol   = std::sqrt(sum_grad_p_sol);
 
-      // Add the computed values to the table
+      // Add the computed values to the table.
       write_norms_to_table(v_f_T_sol,
                            v_s_T_sol,
                            grad_u_T_sol,

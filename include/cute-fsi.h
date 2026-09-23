@@ -9,9 +9,9 @@
  *
  * Authors: Stefan Frei, University of Konstanz, 2026
  *          Tobias Knoke, Leibniz University Hannover, 2026
- *          Marc Steinbach, Leibniz University Hannover, 2026
+ *          Marc C. Steinbach, Leibniz University Hannover, 2026
  *          Anne-Kathrin Wenske, Leibniz University Hannover, 2026
- *          Thomas Wick, Leibniz University hannover, 2026
+ *          Thomas Wick, Leibniz University Hannover, 2026
  *
  * Contributers: Marc Fehling, Charles University, Prague, 2026
  *
@@ -101,7 +101,7 @@ namespace Stokes
 
       void run();
 
-      /** The ActiveFEIndex enum.
+      /** Cell selector.
        *
        * Classifies cells into purely fluid cells,
        * purely solid cells and cells at the interface.
@@ -113,10 +113,9 @@ namespace Stokes
         interface = 2,
       };
 
-      /** The SolutionType enum.
+      /** Solution selector.
        *
-       * Helper enum for the graphical output
-       * and computation of L2-norms.
+       * Helper enum for the graphical output and computation of L2-norms.
        */
       enum SolutionType
       {
@@ -208,15 +207,18 @@ namespace Stokes
       const unsigned int                        fe_degree_solid;
       const unsigned int                        quadrature_degree;
 
-      // We need two separte triangulations. The first is for the current solution and the
-      // second for the reference solution at the finest refinement level.
+      // We need two separate triangulations.
+      // The first is for the current solution,
+      // the second for the reference solution at the finest refinement level.
       parallel::distributed::Triangulation<dim> triangulation;
       parallel::distributed::Triangulation<dim> ref_triangulation;
 
-      // We need two pairs of separate DofHandlers: One for the reference solution and one
-      // for the current solution. For each solution type there is one DofHandler that manages
+      // We need two pairs of separate DofHandlers:
+      // One for the reference solution and one for the current solution.
+      // For each solution type there is one DofHandler that manages
       // the solution and one for the level set function.
-      // The geometry of our problem will always be described from the fluid point of view.
+      // The geometry of our problem will always be described
+      // from the fluid point of view.
       const FE_Q<dim>                           fe_level_set;
       DoFHandler<dim>                           level_set_dof_handler;
       DoFHandler<dim>                           ref_level_set_dof_handler;
@@ -234,19 +236,19 @@ namespace Stokes
       NonMatching::MeshClassifier<dim>          mesh_classifier_fluid; /** Mesh classifier from the fluid pov */
       NonMatching::MeshClassifier<dim>          ref_mesh_classifier_fluid;
 
-      // Indices for the extraction of the components, since the FEValuesExtractors
-      // doesn't work for the used NonMatching::FEValues
+      // Indices for the extraction of the components, since the
+      // FEValuesExtractors do not work for the used NonMatching::FEValues.
       const unsigned int                        velocity_fluid_index;
       const unsigned int                        pressure_index;
       const unsigned int                        velocity_solid_index;
       const unsigned int                        displacement_index;
 
       // We have five different vectors handling the solutions.
-      // The first stores the solution at the current timestep and
-      // the second the solution at the previous timestep. Then, we have
-      // the reference solution at the current timestep. To compute the error,
-      // we need to project the current solution onto the reference mesh
-      // and then store the error in the final Vector object.
+      // The first stores the solution at the current timestep,
+      // the second stores the solution at the previous timestep.
+      // Then, we have the reference solution at the current timestep.
+      // To compute the error, we need to project the current solution onto the 
+      // reference mesh and then store the error in the final Vector object.
       PETScWrappers::MPI::Vector                solution;
       PETScWrappers::MPI::Vector                old_timestep_solution;
       PETScWrappers::MPI::Vector                ref_solution;
@@ -261,25 +263,25 @@ namespace Stokes
 
       Parameters::AllParameters                 parameters;
 
-      // Number of refinemenets for the initial mesh and number of refinement
-      // cycles for the convergence analysis. The latter corresponds to the number
-      // of refinements for the reference solution
+      // Number of refinements for the initial mesh and number of refinement
+      // cycles for the convergence analysis. The latter corresponds to the
+      // number of refinements for the reference solution
       unsigned int n_refinements;
       unsigned int n_refinement_cycles;
 
       double h; // mesh size
 
-      // Conduct convergence analysis in space or in time
+      // Conduct convergence analysis in space or in time.
       bool         do_spatial_analysis;
       bool         do_temporal_analysis;
 
-      // Only print every output_skip-th solution to .vtu
+      // Only print every output_skip-th solution to .vtu.
       unsigned int output_skip;
 
-      // Defines the interface geometry
+      // Define the interface geometry.
       std::string interface_type;
 
-      // Physcial parameters
+      // Physical parameters.
       double       v_f_in; // inflow velocity
       double       nu_f;   // fluid viscosity
       double       rho_f;  // fluid density
@@ -287,13 +289,13 @@ namespace Stokes
       double       mu;     // lamee parameter mu
       double       lambda; // lamee parameter lambda
 
-      // Temporal Parameters
+      // Temporal Parameters.
       double       time;
       double       k; // timestep size
       double       end_time;
       unsigned int timestep_no;
 
-      // Ghost Penalty Parameters
+      // Ghost Penalty Parameters.
       double       ghost_prm_v_f;
       double       ghost_prm_v_s;
       double       ghost_prm_p;

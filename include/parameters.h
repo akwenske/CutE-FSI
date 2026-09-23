@@ -9,9 +9,9 @@
  *
  * Authors: Stefan Frei, University of Konstanz, 2026
  *          Tobias Knoke, Leibniz University Hannover, 2026
- *          Marc Steinbach, Leibniz University Hannover, 2026
+ *          Marc C. Steinbach, Leibniz University Hannover, 2026
  *          Anne-Kathrin Wenske, Leibniz University Hannover, 2026
- *          Thomas Wick, Leibniz University hannover, 2026
+ *          Thomas Wick, Leibniz University Hannover, 2026
  *
  * Contributers: Marc Fehling, Charles University, Prague, 2026
  *
