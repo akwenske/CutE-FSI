@@ -1898,14 +1898,24 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
         pcout << "Solution norms: " << std::endl;
         pcout << std::endl;
         if (this_mpi_process == 0)
-          table.write_text(std::cout);
+          {
+            table.write_text(std::cout);
+
+            std::ofstream csv_out("solution_norms.csv");
+            table.write_text(csv_out);
+          }
         pcout << std::endl;
 
         pcout << std::endl;
         pcout << "Convergence rates using reference solution: " << std::endl;
         pcout << std::endl;
         if (this_mpi_process == 0)
-          convergence_table.write_text(std::cout);
+          {
+            convergence_table.write_text(std::cout);
+
+            std::ofstream csv_out("error_norms.csv");
+            convergence_table.write_text(csv_out);
+          }
         pcout << std::endl;
       }
 
@@ -2041,7 +2051,12 @@ void Stokes::StokesFSI<dim>::run()
       pcout << "Solution norms: " << std::endl;
       pcout << std::endl;
       if (this_mpi_process == 0)
-        table.write_text(std::cout);
+        {
+          table.write_text(std::cout);
+
+          std::ofstream csv_out("solution_norms.csv");
+          table.write_text(csv_out);
+        }
       pcout << std::endl;
     }
 }
