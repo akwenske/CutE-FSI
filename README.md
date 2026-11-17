@@ -25,9 +25,9 @@ $ git clone https://github.com/akwenske/CutE-FSI.git
 $ cd CutE-FSI
 $ mkdir build && cd build
 $ cmake -DDEAL_II_DIR=<path-to-deal-ii> -DCMAKE_BUILD_TYPE=Release ..
-$ make -j <N> && mpirun -np <N> ./cute-fsi
+$ make -j <N> && mpirun -np <N> ./cute-fsi <prm-file>
 ```
-The parameter file cute-fsi.prm is included hard-coded in the main.cc. 
+If cute-fsi is called without a parameter file, by default cute-fsi.prm is used. Inlcuded are also the presets horizontal.prm and sphere.prm. 
 We have added [reference_terminal_log_file.txt](reference_terminal_log_file.txt) to which this run and its terminal output can be compared with. This shows the correctness of your compilation and run with regard to the release version of the code.
 
 ## Documentation
@@ -42,7 +42,7 @@ in the CutE-FSI directory.
 The principal functions and folders of the repository are:<br>
 [main.cc](main.cc): Starting file as usual.<br>
 *.prm: Parameter files for running different sets of configurations. Therein, global, discretization, and solver parameters are defined. Moreover, material parameters are defined. Finally, ghost penalty parameters for the CutFEM method are defined.<br>
-[cute-fsi.prm](cute-fsi.prm): Actual parameter file that is taken hard-coded in the main.cc file<br>
+[cute-fsi.prm](cute-fsi.prm): Default parameter file.<br>
 [include](include): folder with header *.h files<br>
 [source](source): folder with source *.cc files<br>
 [cute-fsi.h](include/cute-fsi.h): Definition of parameters and functions for the actual main implementation of our method<br>

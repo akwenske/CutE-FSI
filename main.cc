@@ -33,7 +33,10 @@ int main(int argc, char **argv)
     dealii::deallog.depth_console(0);
     const unsigned int dim = 2;
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-    const Parameters::AllParameters parameters("cute-fsi.prm");
+
+    const std::string prm_file = (argc > 1) ? argv[argc-1] : "cute-fsi.prm";
+    const Parameters::AllParameters parameters(prm_file);
+
     Stokes::StokesFSI<dim> stokes_fsi(parameters.fe_degree_fluid,
                                       parameters.fe_degree_solid,
                                       parameters);
