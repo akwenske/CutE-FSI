@@ -1460,7 +1460,8 @@ template<int dim>
 void Stokes::StokesFSI<dim>::read_in_solution(std::string filename,
                                               PETScWrappers::MPI::Vector & ref_solution)
 {
-  std::ifstream solution_file(filename);
+  std::ifstream solution_file("./reference_solutions/" +
+                              filename);
   std::string solution_line;
   std::getline(solution_file, solution_line);
   int pos1;
@@ -1530,7 +1531,8 @@ void Stokes::StokesFSI<dim>::save_reference_solution()
       + ".txt";
 
   std::ofstream solution_file;
-  solution_file.open(filename);
+  solution_file.open("./reference_solutions/" +
+                     filename);
   solution.print(solution_file,12);
   solution_file.close();
 }
@@ -1805,6 +1807,9 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
 
   const unsigned int output_skip = parameters.output_skip;
 
+  if(this_mpi_process == 0)
+    std::filesystem::create_directory("./reference_solutions");
+
   compute_reference_solution(v_f_T_ref,
                              v_s_T_ref,
                              grad_u_T_ref,
@@ -1934,6 +1939,13 @@ void Stokes::StokesFSI<dim>::do_convergence_analysis()
           timestep_no_offset *= 0.5;
         }
     }
+
+  // Remove reference solution files
+  const int ierr = MPI_Barrier(mpi_communicator);
+  AssertThrowMPI(ierr);
+
+  if(this_mpi_process == 0)
+    std::filesystem::remove_all("./reference_solutions");
 }
 
 /** Solve FSI problem.
